@@ -50,7 +50,7 @@ class JsonUtil:
         for d1 in data1:
             print(d1[:5])
         while True:
-            answer = input('\nDoes data converting work right? (y/n): ')
+            answer = input('\nDoes data convertion work right? (y/n): ')
             if answer.lower() == 'y': break
             if answer.lower() == 'n': exit(1)
         # from list to dict, by bank name

@@ -6,6 +6,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support.ui import Select
 
 from jsonio import JsonUtil
 
@@ -32,12 +33,12 @@ class BondChain:
         # wait for change of router
         time.sleep(3)
 
-    def add_offer(self, payload: List[str]) -> bool:
+    def add_offer(self, payload: List[str], bank_rank: List[str]) -> bool:
         ''' @return bool - whether the offer is successfully submitted\n
         Add an offer
         '''
         try:
-            self.__try_add_offer(payload)
+            self.__try_add_offer(payload, bank_rank)
         except TimeoutException:  # no id, no such a rank, or something else
             btn_cancel = (By.XPATH, self.conf['elem']['btn_cancel'])
             self.driver.find_element_by_xpath(btn_cancel[1]).click()
@@ -50,7 +51,7 @@ class BondChain:
         '''
         self.driver.quit()
 
-    def __try_add_offer(self, payload: List[str]):
+    def __try_add_offer(self, payload: List[str], bank_rank: List[str]):
         ''' @return None. Will raise TimeoutException\n
         Add an offer. Use explicit method waiting for webpage loading
         '''
@@ -79,6 +80,21 @@ class BondChain:
             # input i-th interest ratio
             txt_interesti = (By.XPATH, self.conf['elem']['txt_interest0'] % (i + 1))
             self.driver.find_element_by_xpath(txt_interesti[1]).send_keys(payload[i])
+        # check if it has a rank, and try to specify this rank if absent
+        slt_rank = (By.XPATH, self.conf['elem']['slt_rank'])
+        slt_rank_s = Select(self.driver.find_element_by_xpath(slt_rank[1]))
+        if slt_rank_s.first_selected_option.text == '请选择':  # has no rank
+            if payload[0] in bank_rank:
+                selected = bank_rank[payload[0]]
+            else:
+                raw_slt = input(f'Specify a rank for bank {payload[0]} (omit to skip): ')
+                selected = ['', 'AAA', 'AA+', 'AA', 'AA-', 'A+', 'A', 'A-', 'BBB+'].index(raw_slt)
+                if selected > 0:
+                    bank_rank[payload[0]] = selected
+                    JsonUtil.save(bank_rank['self.path'], bank_rank)
+                else:
+                    print('Error: invalid rank, will skip this offer')
+            if selected > 0: slt_rank_s.select_by_value(str(selected))
         # click confirm button
         btn_confirm = (By.XPATH, self.conf['elem']['btn_confirm'])
         self.driver.find_element_by_xpath(btn_confirm[1]).click()
