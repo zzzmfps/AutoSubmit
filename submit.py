@@ -25,11 +25,17 @@ class BondChain:
         '''
         self.driver.get(self.conf['page']['login'])
         # input username
-        self.driver.find_element_by_name('loginName').send_keys(self.user['username'])
+        txt_login_name = (By.NAME, 'loginName')
+        self.__wait_for_visible(txt_login_name, 3, 0.5)
+        self.driver.find_element_by_name(txt_login_name[1]).send_keys(self.user['username'])
         # input password
-        self.driver.find_element_by_name('loginPassword').send_keys(self.user['password'])
+        txt_login_word = (By.NAME, 'loginPassword')
+        self.__wait_for_visible(txt_login_word, 1, 0.2)
+        self.driver.find_element_by_name(txt_login_word[1]).send_keys(self.user['password'])
         # click submit button
-        self.driver.find_element_by_css_selector(self.conf['elem']['btn_login']).click()
+        btn_login = (By.CSS_SELECTOR, self.conf['elem']['btn_login'])
+        self.__wait_for_clickable(btn_login, 3, 0.5)
+        self.driver.find_element_by_css_selector(btn_login[1]).click()
         # wait for change of router
         time.sleep(3)
 
@@ -100,6 +106,12 @@ class BondChain:
         self.driver.find_element_by_xpath(btn_confirm[1]).click()
         # check whether offer is submitted
         self.__wait_for_not_visible(btn_confirm, 1, 0.2)
+
+    def __wait_for_clickable(self, element: Tuple[str, str], timeout: float, frequency: float):
+        ''' @return None. Will raise `TimeoutException` when times out\n
+        Force driver to wait until a certain element is present and visible
+        '''
+        WebDriverWait(self.driver, timeout, frequency).until(EC.element_to_be_clickable(element))
 
     def __wait_for_visible(self, element: Tuple[str, str], timeout: float, frequency: float):
         ''' @return None. Will raise `TimeoutException` when times out\n
