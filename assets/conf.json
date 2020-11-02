@@ -6,6 +6,7 @@
     "Origin": "http://bondchain.io",
     "Referer": "http://bondchain.io/alphain_operation/",
     "login": "http://bondchain.io/manager-user/loginAuthc",
+    "offerList": "http://bondchain.io/ncd-operation/offer/queryOfferList",
     "nextDealDate": "http://bondchain.io/ainas/dealDay/nextDealDate",
     "fuzzyQuery": "http://bondchain.io/ncd-operation/offer/fuzzyQueryOrgUser",
     "getRankById": "http://bondchain.io/ncd-operation/offer/getLatestInsCreditRankById",

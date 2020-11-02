@@ -4,12 +4,12 @@ from typing import List
 
 
 class JsonUtil:
-    ''' A util class for dealing with load, save, convert on json
+    ''' A util class for dealing with load, save and convert on json.
     '''
     @staticmethod
     def save(filename: str, data: List[str], sort_keys: bool = True):
         ''' @return None\n
-        Just save `data` as a json file
+        Just save `data` as a json file.
         '''
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, sort_keys=sort_keys)
@@ -17,7 +17,7 @@ class JsonUtil:
     @staticmethod
     def load(filename: str):
         ''' @return Object - object read from json\n
-        Just load json files and return
+        Just load json files and return.
         '''
         if not os.path.exists(filename): return {}
         with open(filename, 'r', encoding='utf-8') as f:
@@ -27,16 +27,17 @@ class JsonUtil:
     def convert_txt_to_json(src: str, dst: str):
         ''' @return None\n
         Convert and re-arrange data stored in txt to json format.
-        Using bank_map.json to correct some special bank names.
+        Using `bank_map.json` to correct some special bank names.
         '''
         # read lines as a list
-        raw = open(src, 'r', encoding='utf-8').read().split('\n')
+        with open(src, 'r', encoding='utf-8') as f:
+            raw = f.read().strip().split('\n')
         bank_map = JsonUtil.load('assets/bank_map.json')
-        if not raw[-1]: raw.pop()
         # rearrange, in original layout
         data1, raw_n = [[] for _ in range(5)], 0
-        for rg in enumerate(['AAA', 'AAA Others', 'AA+', 'AA']):  # 4 rank groups
-            nums = input(f'Nums in rank group {rg}: ').split(' ')
+        for rg in range(1, 5):  # 4 rank groups
+            nums = input(f'Nums in rank group {rg} (press enter to skip): ').split(' ')
+            if len(nums) == 1 and nums[0] == '': continue
             assert len(nums) == 5, 'invalid input'  # 1M, 3M, 6M, 9M, 1Y
             nums, j = [int(x) for x in nums], 0
             while sum(nums) > 0:
@@ -48,13 +49,7 @@ class JsonUtil:
                     nums[j] -= 1
                     raw_n += 2
                 j = (j + 1) % 5
-        # check manually
-        for d1 in data1:
-            print(d1[:5])
-        while True:
-            answer = input('\nDoes data convertion work right? (y/n): ')
-            if answer.lower() == 'y': break
-            if answer.lower() == 'n': exit(1)
+        assert raw_n == len(raw), f'convert failed: {(len(raw)-raw_n)>>1} items left not processed'
         # from list to dict, by bank name
         data2 = dict()
         for i, col in enumerate(data1):

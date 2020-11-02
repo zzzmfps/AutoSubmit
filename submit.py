@@ -1,5 +1,5 @@
 import time
-from typing import Dict, List
+from typing import Dict, List, Set
 from uuid import uuid4
 
 import requests as rq
@@ -8,7 +8,7 @@ from jsonio import JsonUtil
 
 
 class BondChain:
-    ''' Auto submit table data
+    ''' Auto submit table data.
     '''
     def __init__(self):
         self.conf = JsonUtil.load('assets/conf.json')
@@ -18,18 +18,22 @@ class BondChain:
 
     def login(self):
         ''' @return None\n
-        Login to get session id
+        Login to get session id.
         '''
         headers = self.__make_header()
         resp = rq.post(self.conf['login'], json=self.user, headers=headers)
         resp.raise_for_status()
         self.session_id = resp.json()['data']['sessionId']
 
-    def submit_offers(self, banks: List[List[str]]) -> List[List[str]]:
+    def submit_offers(self, banks: List[List[str]], prune: bool = True) -> List[List[str]]:
         ''' @return List[List[str]] - list of failed offers\n
-        Add all offers and return failed ones
+        Add all offers and return failed ones. If `prune` is True, it will
+        remove banks of which offers already exist.
         '''
         failed = []
+        if prune:
+            exists = self.__get_existing_set()
+            banks = [v for v in banks if v[0] not in exists]
         for bank in banks:
             print(f'Adding offer of bank {bank[0]}: ', end='')
             bank_id = self.__get_bank_id(bank[0])
@@ -44,7 +48,7 @@ class BondChain:
 
     def __make_header(self) -> Dict[str, str]:
         ''' @return Dict[str, str] - request headers\n
-        Generate headers of request and return it
+        Generate headers of request and return it.
         '''
         return {
             'Accept': 'application/json, text/plain, */*',
@@ -59,6 +63,29 @@ class BondChain:
             'Referer': self.conf['Referer'],
             'User-Agent': self.conf['User-Agent']
         }
+
+    def __get_existing_set(self) -> Set[str]:
+        ''' @return Set[str] - set of names of existing banks\n
+        Pull all existing offers and convert them into a name set.
+        '''
+        headers = self.__make_header()
+        payload = {
+            "orgIssuerId": "",
+            "noticeDate": int(1000 * time.time()),
+            "sbjRtg": "",
+            "startPrice": "",
+            "endPrice": "",
+            "startAssetSize": "",
+            "endAssetSize": "",
+            "provinceList": [],
+            "nonBankSign": "",
+            "openSign": ""
+        }
+        resp = rq.post(self.conf['offerList'], json=payload, headers=headers)
+        return set([
+            offer['organizationShortName'] for rg in resp.json()['data'] for tg in rg['sbjRtgList']
+            for offer in tg['offerDtlList']
+        ])
 
     def __get_deal_date(self) -> str:
         ''' @return str - next deal date
@@ -103,10 +130,12 @@ class BondChain:
             'issuerId': bank_id,
             'issuerCredit': str(['', 'AAA', 'AA+', 'AA', 'AA-', 'A+', 'A', 'A-', 'BBB+'].index(bank_rank))
         }
+        # check validation
         if template['issuerId'] is None: return '未找到该银行（要求名称精确匹配）'
         if template['issuerId'] == '': return '无发行机构 ID'
         if template['issuerCredit'] == '0': template['issuerCredit'] = self.rmap.setdefault(bank[0], '0')
         if template['issuerCredit'] == '0': return '无评级信息'
+        # construct payload and submit it
         payload = {'noticeDate': int(1000 * time.time()), 'offerDtlList': []}
         for i, val in enumerate(bank[1:], 1):
             if not val: continue
@@ -119,5 +148,4 @@ class BondChain:
 
 
 if __name__ == '__main__':
-    bc = BondChain()
-    bc.login()
+    pass
