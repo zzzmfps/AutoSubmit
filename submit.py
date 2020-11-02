@@ -1,12 +1,8 @@
 import time
-from typing import List, Tuple
+from typing import Dict, List
+from uuid import uuid4
 
-from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support.ui import Select
+import requests as rq
 
 from jsonio import JsonUtil
 
@@ -14,113 +10,109 @@ from jsonio import JsonUtil
 class BondChain:
     ''' Auto submit table data to bondchain.io
     '''
-    def __init__(self, conf: str, user: str):
-        self.conf = JsonUtil.load(conf)
-        self.user = JsonUtil.load(user)
-        self.driver = webdriver.Edge(self.conf['driver'])
+    def __init__(self):
+        self.conf = JsonUtil.load('assets/conf.json')
+        self.user = JsonUtil.load('assets/user.json')
+        self.rmap = JsonUtil.load('assets/bank_rank.json')
+        self.session_id = uuid4().__str__()
 
     def login(self):
         ''' @return None\n
-        Simulate login procedure
+        Login to get session id
         '''
-        self.driver.get(self.conf['page']['login'])
-        # input username
-        txt_login_name = (By.NAME, 'loginName')
-        self.__wait_for_visible(txt_login_name, 3, 0.5)
-        self.driver.find_element_by_name(txt_login_name[1]).send_keys(self.user['username'])
-        # input password
-        txt_login_word = (By.NAME, 'loginPassword')
-        self.__wait_for_visible(txt_login_word, 1, 0.2)
-        self.driver.find_element_by_name(txt_login_word[1]).send_keys(self.user['password'])
-        # click submit button
-        btn_login = (By.CSS_SELECTOR, self.conf['elem']['btn_login'])
-        self.__wait_for_clickable(btn_login, 3, 0.5)
-        self.driver.find_element_by_css_selector(btn_login[1]).click()
-        # wait for change of router
-        time.sleep(3)
+        headers = self.__make_header()
+        resp = rq.post(self.conf['login'], json=self.user, headers=headers)
+        resp.raise_for_status()
+        self.session_id = resp.json()['data']['sessionId']
 
-    def add_offer(self, payload: List[str], bank_rank: List[str]) -> bool:
-        ''' @return bool - whether the offer is successfully submitted\n
-        Add an offer
+    def add_offers(self, banks: List[List[str]]) -> List[List[str]]:
+        ''' @return List[List[str]] - list of failed offers\n
+        Add all offers and return failed ones
         '''
-        try:
-            self.__try_add_offer(payload, bank_rank)
-        except TimeoutException:  # no id, no such a rank, or something else
-            btn_cancel = (By.XPATH, self.conf['elem']['btn_cancel'])
-            self.driver.find_element_by_xpath(btn_cancel[1]).click()
-            return False
-        return True
-
-    def done(self):
-        ''' @return None\n
-        Close browser and end driver
-        '''
-        self.driver.quit()
-
-    def __try_add_offer(self, payload: List[str], bank_rank: List[str]):
-        ''' @return None. Will raise TimeoutException\n
-        Add an offer. Use explicit method waiting for webpage loading
-        '''
-        if self.driver.current_url != self.conf['page']['add_offer']:
-            self.driver.get(self.conf['page']['add_offer'])
-        # wait for addOffer button
-        btn_addoffer = (By.XPATH, self.conf['elem']['btn_addoffer'])
-        self.__wait_for_visible(btn_addoffer, 3, 0.5)
-        self.driver.find_element_by_xpath(btn_addoffer[1]).click()
-        # wait for institute input field
-        txt_institute = (By.XPATH, self.conf['elem']['txt_institute'])
-        self.__wait_for_visible(txt_institute, 3, 0.5)
-        self.driver.find_element_by_xpath(txt_institute[1]).send_keys(payload[0])
-        # wait for institute select field
-        slt_institute = (By.XPATH, self.conf['elem']['slt_institute'])
-        self.__wait_for_visible(slt_institute, 3, 0.5)
-        slt_ul = self.driver.find_element_by_xpath(slt_institute[1])
-        for opt in slt_ul.find_elements_by_tag_name('li'):
-            span = opt.find_element_by_tag_name('span')
-            if span.text == payload[0]:
-                opt.click()
-                break
-        # input interest ratios
-        for i in range(1, 6):
-            if not payload[i]: continue
-            # input i-th interest ratio
-            txt_interesti = (By.XPATH, self.conf['elem']['txt_interest0'] % (i + 1))
-            self.driver.find_element_by_xpath(txt_interesti[1]).send_keys(payload[i])
-        # check if it has a rank, and try to specify this rank if absent
-        slt_rank = (By.XPATH, self.conf['elem']['slt_rank'])
-        slt_rank_s = Select(self.driver.find_element_by_xpath(slt_rank[1]))
-        if slt_rank_s.first_selected_option.text == '请选择':  # has no rank
-            if payload[0] in bank_rank:
-                selected = bank_rank[payload[0]]
+        failed = []
+        for bank in banks:
+            print(f'Adding offer of bank {bank[0]}: ', end='')
+            bank_id = self.fuzzy_query(bank[0])
+            bank_rank = self.get_rank_by_id(bank_id)
+            resp = self.try_to_add_offer(bank_id, bank_rank, bank)
+            if resp['status'] == '0':  # success
+                print('SUCCESS')
             else:
-                raw_slt = input(f'Specify a rank for bank {payload[0]} (omit to skip): ')
-                selected = ['', 'AAA', 'AA+', 'AA', 'AA-', 'A+', 'A', 'A-', 'BBB+'].index(raw_slt)
-                if selected > 0:
-                    bank_rank[payload[0]] = selected
-                    JsonUtil.save(bank_rank['self.path'], bank_rank)
-                else:
-                    print('Error: invalid rank, will skip this offer')
-            if selected > 0: slt_rank_s.select_by_value(str(selected))
-        # click confirm button
-        btn_confirm = (By.XPATH, self.conf['elem']['btn_confirm'])
-        self.driver.find_element_by_xpath(btn_confirm[1]).click()
-        # check whether offer is submitted
-        self.__wait_for_not_visible(btn_confirm, 1, 0.2)
+                failed.append(f'{bank[0]}: {resp["msg"]}')
+                print('FAILED')
+        return failed
 
-    def __wait_for_clickable(self, element: Tuple[str, str], timeout: float, frequency: float):
-        ''' @return None. Will raise `TimeoutException` when times out\n
-        Force driver to wait until a certain element is present and visible
+    def __make_header(self) -> Dict[str, str]:
+        ''' @return Dict[str, str] - request headers\n
+        Generate headers of request and return it
         '''
-        WebDriverWait(self.driver, timeout, frequency).until(EC.element_to_be_clickable(element))
+        return {
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Connection': 'keep-alive',
+            'Content-Type': 'application/json',
+            'DNT': '1',
+            'Host': self.conf['Host'],
+            'lid': self.session_id,
+            'Origin': self.conf['Origin'],
+            'Referer': self.conf['Referer'],
+            'User-Agent': self.conf['User-Agent']
+        }
 
-    def __wait_for_visible(self, element: Tuple[str, str], timeout: float, frequency: float):
-        ''' @return None. Will raise `TimeoutException` when times out\n
-        Force driver to wait until a certain element is present and visible
+    def next_deal_date(self) -> str:
+        ''' @return str - next deal date
         '''
-        WebDriverWait(self.driver, timeout, frequency).until(EC.visibility_of_element_located(element))
+        headers = self.__make_header()
+        payload = {'dealDate': time.strftime('%Y-%m-%d', time.localtime()), 'market': '1'}
+        resp = rq.post(self.conf['nextDealDate'], json=payload, headers=headers)
+        return resp.json()['data']
 
-    def __wait_for_not_visible(self, element: Tuple[str, str], timeout: float, frequency: float):
-        ''' @return None. Will raise `TimeoutException` when times out\n
-        Force driver to wait until a certain element is present but not visible
+    def fuzzy_query(self, bank_name: str) -> str:
+        ''' @return str - institution id of the bank\n
+        An empty id means the bank has no id yet; `None` means cannot find
+        a bank that exactly match the given string `bank_name`.
         '''
-        WebDriverWait(self.driver, timeout, frequency).until_not(EC.visibility_of_element_located(element))
+        headers = self.__make_header()
+        payload = {'enqrVal': bank_name, 'pageNum': 1, 'pageSize': 10}
+        resp = rq.post(self.conf['fuzzyQuery'], json=payload, headers=headers)
+        for bank in resp.json()['data']['list']:
+            if bank['organizationShortName'] == bank_name:
+                return bank.setdefault('issuerId', '')
+        return None
+
+    def get_rank_by_id(self, bank_id: str) -> str:
+        ''' @return str - corresponding rank of the institution id
+        '''
+        headers = self.__make_header()
+        payload = {'institutionId': bank_id}
+        resp = rq.post(self.conf['getRankById'], json=payload, headers=headers)
+        return resp.json()['data']
+
+    def try_to_add_offer(self, bank_id: str, bank_rank: str, bank: List[str]) -> bool:
+        ''' @return bool - whether this offer had been submitted successfully\n
+        '''
+        headers = self.__make_header()
+        offer_template = {
+            'issueTermNcd': '',  # duration 1~5: 1M, 3M, 6M, 9M, 1Y
+            'refYield': '',
+            'amount': '',
+            'nonBankSign': 0,
+            'openSign': 0,
+            'refYieldBulletin': '',  # offer value
+            'issuerId': bank_id,
+            'issuerCredit': str(['', 'AAA', 'AA+', 'AA', 'AA-', 'A+', 'A', 'A-', 'BBB+'].index(bank_rank))
+        }
+        payload = {'noticeDate': int(1000 * time.time()), 'offerDtlList': []}
+        for i, val in enumerate(bank[1:], 1):
+            if not val: continue
+            offer = offer_template.copy()
+            offer['issueTermNcd'] = str(i)
+            offer['refYieldBulletin'] = val
+            payload['offerDtlList'].append(offer)
+        resp = rq.post(self.conf['addOffer'], json=payload, headers=headers)
+        return resp.json()
+
+
+if __name__ == '__main__':
+    pass

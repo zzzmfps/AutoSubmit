@@ -1,17 +1,13 @@
 {
-    "driver": "driver/edgedriver_win64/msedgedriver.exe",
-    "page": {
-        "login": "http://bondchain.io/alphain_operation/#/login",
-        "add_offer": "http://bondchain.io/alphain_operation/#/home/deposit-slip"
-    },
-    "elem": {
-        "btn_login": "[class=\"btn btn-primary btn-block\"]",
-        "btn_addoffer": "/html/body/app-root/app-home/div[1]/div/div/deposit-slip/div/div[1]/span[3]/nz-dropdown-button[1]/div/button[1]",
-        "txt_institute": "/html/body/div[8]/div[2]/div/p[1]/p-autocomplete/span/input",
-        "slt_institute": "/html/body/div[8]/div[2]/div/p[1]/p-autocomplete/span/div/ul",
-        "slt_rank": "/html/body/div[8]/div[2]/div/p[2]/select",
-        "txt_interest0": "/html/body/div[8]/div[2]/div/p-panel/div/div[2]/div/form/table/tbody/tr[%d]/td[2]/input",
-        "btn_confirm": "/html/body/div[8]/div[2]/p/button[3]",
-        "btn_cancel": "/html/body/div[8]/div[2]/p/button[1]"
-    }
+    "comment": "请求的配置或目标 URL",
+    "self.path": "assets/conf.json",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56",
+    "Host": "bondchain.io",
+    "Origin": "http://bondchain.io",
+    "Referer": "http://bondchain.io/alphain_operation/",
+    "login": "http://bondchain.io/manager-user/loginAuthc",
+    "nextDealDate": "http://bondchain.io/ainas/dealDay/nextDealDate",
+    "fuzzyQuery": "http://bondchain.io/ncd-operation/offer/fuzzyQueryOrgUser",
+    "getRankById": "http://bondchain.io/ncd-operation/offer/getLatestInsCreditRankById",
+    "addOffer": "http://bondchain.io/ncd-operation/offer/addOffer"
 }

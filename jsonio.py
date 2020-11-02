@@ -1,4 +1,5 @@
 import json
+import os
 from typing import List
 
 
@@ -18,18 +19,19 @@ class JsonUtil:
         ''' @return Object - object read from json\n
         Just load json files and return
         '''
+        if not os.path.exists(filename): return {}
         with open(filename, 'r', encoding='utf-8') as f:
             return json.load(f)
 
     @staticmethod
-    def convert_txt_to_json(src: str, dst: str, bmap: str = ''):
+    def convert_txt_to_json(src: str, dst: str):
         ''' @return None\n
-        Convert and re-arrange data stored in txt to json format. Using `bmap` as
-        to correct some special bank names.
+        Convert and re-arrange data stored in txt to json format.
+        Using bank_map.json to correct some special bank names.
         '''
         # read lines as a list
         raw = open(src, 'r', encoding='utf-8').read().split('\n')
-        bank_map = JsonUtil.load(bmap) if bmap else {}
+        bank_map = JsonUtil.load('assets/bank_map.json')
         if not raw[-1]: raw.pop()
         # rearrange, in original layout
         data1, raw_n = [[] for _ in range(5)], 0
@@ -64,3 +66,7 @@ class JsonUtil:
             data3.append([key, *data2[key]])
         # save it
         JsonUtil.save(dst, data3)
+
+
+if __name__ == "__main__":
+    pass
