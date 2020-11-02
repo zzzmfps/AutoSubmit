@@ -8,7 +8,7 @@ from jsonio import JsonUtil
 
 
 class BondChain:
-    ''' Auto submit table data to bondchain.io
+    ''' Auto submit table data
     '''
     def __init__(self):
         self.conf = JsonUtil.load('assets/conf.json')
@@ -25,20 +25,20 @@ class BondChain:
         resp.raise_for_status()
         self.session_id = resp.json()['data']['sessionId']
 
-    def add_offers(self, banks: List[List[str]]) -> List[List[str]]:
+    def submit_offers(self, banks: List[List[str]]) -> List[List[str]]:
         ''' @return List[List[str]] - list of failed offers\n
         Add all offers and return failed ones
         '''
         failed = []
         for bank in banks:
             print(f'Adding offer of bank {bank[0]}: ', end='')
-            bank_id = self.fuzzy_query(bank[0])
-            bank_rank = self.get_rank_by_id(bank_id)
-            resp = self.try_to_add_offer(bank_id, bank_rank, bank)
-            if resp['status'] == '0':  # success
+            bank_id = self.__get_bank_id(bank[0])
+            bank_rank = self.__get_rank_by_id(bank_id)
+            resp = self.__submit_one_offer(bank_id, bank_rank, bank)
+            if resp == '新增报价成功':  # success
                 print('SUCCESS')
             else:
-                failed.append(f'{bank[0]}: {resp["msg"]}')
+                failed.append(f'{bank[0]}: {resp}')
                 print('FAILED')
         return failed
 
@@ -60,7 +60,7 @@ class BondChain:
             'User-Agent': self.conf['User-Agent']
         }
 
-    def next_deal_date(self) -> str:
+    def __get_deal_date(self) -> str:
         ''' @return str - next deal date
         '''
         headers = self.__make_header()
@@ -68,7 +68,7 @@ class BondChain:
         resp = rq.post(self.conf['nextDealDate'], json=payload, headers=headers)
         return resp.json()['data']
 
-    def fuzzy_query(self, bank_name: str) -> str:
+    def __get_bank_id(self, bank_name: str) -> str:
         ''' @return str - institution id of the bank\n
         An empty id means the bank has no id yet; `None` means cannot find
         a bank that exactly match the given string `bank_name`.
@@ -81,7 +81,7 @@ class BondChain:
                 return bank.setdefault('issuerId', '')
         return None
 
-    def get_rank_by_id(self, bank_id: str) -> str:
+    def __get_rank_by_id(self, bank_id: str) -> str:
         ''' @return str - corresponding rank of the institution id
         '''
         headers = self.__make_header()
@@ -89,11 +89,11 @@ class BondChain:
         resp = rq.post(self.conf['getRankById'], json=payload, headers=headers)
         return resp.json()['data']
 
-    def try_to_add_offer(self, bank_id: str, bank_rank: str, bank: List[str]) -> bool:
-        ''' @return bool - whether this offer had been submitted successfully\n
+    def __submit_one_offer(self, bank_id: str, bank_rank: str, bank: List[str]) -> str:
+        ''' @return str - message of this offer-adding operation\n
         '''
         headers = self.__make_header()
-        offer_template = {
+        template = {
             'issueTermNcd': '',  # duration 1~5: 1M, 3M, 6M, 9M, 1Y
             'refYield': '',
             'amount': '',
@@ -103,16 +103,21 @@ class BondChain:
             'issuerId': bank_id,
             'issuerCredit': str(['', 'AAA', 'AA+', 'AA', 'AA-', 'A+', 'A', 'A-', 'BBB+'].index(bank_rank))
         }
+        if template['issuerId'] is None: return '未找到该银行（要求名称精确匹配）'
+        if template['issuerId'] == '': return '无发行机构 ID'
+        if template['issuerCredit'] == '0': template['issuerCredit'] = self.rmap.setdefault(bank[0], '0')
+        if template['issuerCredit'] == '0': return '无评级信息'
         payload = {'noticeDate': int(1000 * time.time()), 'offerDtlList': []}
         for i, val in enumerate(bank[1:], 1):
             if not val: continue
-            offer = offer_template.copy()
+            offer = template.copy()
             offer['issueTermNcd'] = str(i)
             offer['refYieldBulletin'] = val
             payload['offerDtlList'].append(offer)
         resp = rq.post(self.conf['addOffer'], json=payload, headers=headers)
-        return resp.json()
+        return resp.json()['msg']
 
 
 if __name__ == '__main__':
-    pass
+    bc = BondChain()
+    bc.login()

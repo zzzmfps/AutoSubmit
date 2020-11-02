@@ -13,7 +13,7 @@ if __name__ == "__main__":
     # load data
     data = JsonUtil.load(dst_json)
     # traverse data and submit them
-    failed = bc.add_offers(data)
+    failed = bc.submit_offers(data)
     # print failed offers
     if failed: print(f'\n* Totally {len(failed)} fail(s):')
     for fail in failed:
