@@ -42,7 +42,7 @@ class BondChain:
             if resp == '新增报价成功':  # success
                 print('SUCCESS')
             else:
-                failed.append(f'{bank[0]}: {resp}')
+                failed.append(f'{str(bank)}: {resp}')
                 print('FAILED')
         return failed
 
