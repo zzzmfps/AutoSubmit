@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List
+from typing import List, Dict
 
 
 class JsonUtil:
@@ -15,8 +15,8 @@ class JsonUtil:
             json.dump(data, f, ensure_ascii=False, sort_keys=sort_keys)
 
     @staticmethod
-    def load(filename: str):
-        ''' @return Object - object read from json\n
+    def load(filename: str) -> Dict[object]:
+        ''' @return Dict[object] - dict read from json\n
         Just load json files and return.
         '''
         if not os.path.exists(filename): return {}

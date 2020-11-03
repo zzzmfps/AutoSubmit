@@ -25,7 +25,7 @@ class BondChain:
         resp.raise_for_status()
         self.session_id = resp.json()['data']['sessionId']
 
-    def submit_offers(self, banks: List[List[str]], prune: bool = True) -> List[List[str]]:
+    def add_offers(self, banks: List[List[str]], prune: bool = True) -> List[List[str]]:
         ''' @return List[List[str]] - list of failed offers\n
         Add all offers and return failed ones. If `prune` is True, it will
         remove banks of which offers already exist.
@@ -117,7 +117,7 @@ class BondChain:
         return resp.json()['data']
 
     def __submit_one_offer(self, bank_id: str, bank_rank: str, bank: List[str]) -> str:
-        ''' @return str - message of this offer-adding operation\n
+        ''' @return str - message of this offer-submitting operation\n
         '''
         headers = self.__make_header()
         template = {

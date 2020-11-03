@@ -1,7 +1,6 @@
 {
     "comment": "为缺少评级的银行指定评级",
     "comment2": "1 AAA, 2 AA+, 3 AA, 4 AA-, 5 A+, 6 A, 7 A-, 8 BBB+",
-    "self.path": "assets/bank_rank.json",
     "恒生银行": "1",
     "友利银行": "2",
     "承德银行": "2",
