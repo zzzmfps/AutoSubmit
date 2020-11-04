@@ -35,8 +35,9 @@ class JsonUtil:
         bank_map = JsonUtil.load('assets/bank_map.json')
         # rearrange, in original layout
         data1, raw_n = [[] for _ in range(5)], 0
+        print('\nDivide text into blocks...')
         for rg in range(1, 5):  # 4 rank groups
-            nums = input(f'Nums in rank group {rg} (press enter to skip): ').split(' ')
+            nums = input(f'Nums in rank group {rg} of each column (press enter to skip): ').split(' ')
             if len(nums) == 1 and nums[0] == '': continue
             assert len(nums) == 5, 'invalid input'  # 1M, 3M, 6M, 9M, 1Y
             nums, j = [int(x) for x in nums], 0

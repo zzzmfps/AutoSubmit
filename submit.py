@@ -20,24 +20,26 @@ class BondChain:
         ''' @return None\n
         Login to get session id.
         '''
-        print('Try to login...')
+        print('\nTry to login...')
         headers = self.__make_header()
         resp = rq.post(self.conf['login'], json=self.user, headers=headers)
         resp.raise_for_status()
         self.session_id = resp.json()['data']['sessionId']
+        print(f'Received session id [{self.session_id}] from server')
 
     def add_offers(self, banks: List[List[str]], prune: bool = True) -> List[List[str]]:
         ''' @return List[List[str]] - list of failed offers\n
         Add all offers and return failed ones. If `prune` is True, it will
         remove banks of which offers already exist.
         '''
-        print('Start to add offers...')
+        print('\nStart to add offers...')
         failed = []
         if prune:
+            # TODO: check each offer value, not just bank names
             exists = self.__get_existing_set()
             banks = [v for v in banks if v[0] not in exists]
         for bank in banks:
-            print(f'Adding offer of bank {bank[0]}: ', end='')
+            print(f'Adding offer of bank [{bank[0]}]: ', end='')
             bank_id = self.__get_bank_id(bank[0])
             bank_rank = self.__get_rank_by_id(bank_id)
             resp = self.__submit_one_offer(bank_id, bank_rank, bank)
