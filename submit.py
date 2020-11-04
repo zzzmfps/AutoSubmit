@@ -20,6 +20,7 @@ class BondChain:
         ''' @return None\n
         Login to get session id.
         '''
+        print('Try to login...')
         headers = self.__make_header()
         resp = rq.post(self.conf['login'], json=self.user, headers=headers)
         resp.raise_for_status()
@@ -30,6 +31,7 @@ class BondChain:
         Add all offers and return failed ones. If `prune` is True, it will
         remove banks of which offers already exist.
         '''
+        print('Start to add offers...')
         failed = []
         if prune:
             exists = self.__get_existing_set()
