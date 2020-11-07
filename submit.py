@@ -4,16 +4,16 @@ from uuid import uuid4
 
 import requests as rq
 
-from jsonio import JsonUtil
+from ioutil import Utils
 
 
 class BondChain:
     ''' Auto submit table data.
     '''
     def __init__(self):
-        self.conf = JsonUtil.load('assets/conf.json')
-        self.user = JsonUtil.load('assets/user.json')
-        self.rmap = JsonUtil.load('assets/bank_rank.json')
+        self.conf = Utils.load('assets/conf.json')
+        self.user = Utils.load('assets/user.json')
+        self.rmap = Utils.load('assets/bank_rank.json')
         self.session_id = uuid4().__str__()
 
     def login(self):
@@ -21,10 +21,14 @@ class BondChain:
         Login to get session id.
         '''
         print('\nTry to login...')
-        headers = self.__make_header()
-        resp = rq.post(self.conf['login'], json=self.user, headers=headers)
-        resp.raise_for_status()
-        self.session_id = resp.json()['data']['sessionId']
+        try:
+            resp = self.__post(self.conf['login'], self.user, timeout=10)
+            if resp['status'] != '0': raise rq.exceptions.ConnectionError(resp['msg'])
+        except rq.exceptions.RequestException as ex:
+            print(' ! FAILED to login:', ex.__str__())
+            print(' ! Exiting...\n')
+            exit(1)
+        self.session_id = resp['data']['sessionId']
         print(f'Received session id [{self.session_id}] from server')
 
     def add_offers(self, banks: List[List[str]], prune: bool = True) -> List[List[str]]:
@@ -32,47 +36,42 @@ class BondChain:
         Add all offers and return failed ones. If `prune` is True, it will
         remove banks of which offers already exist.
         '''
-        print('\nStart to add offers...')
         failed = []
+        # try to remove existing offers
         if prune:
             # TODO: check each offer value, not just bank names
-            exists = self.__get_existing_set()
-            banks = [v for v in banks if v[0] not in exists]
+            print('\nPruning offer set...')
+            try:
+                exists = self.__get_existing_set()
+            except rq.exceptions.Timeout as ex:
+                print(' ! FAILED to exec prune:', ex.__str__())
+                print(' ! SKIPPED...')
+            else:
+                banks = [v for v in banks if v[0] not in exists]
+                print('COMPLETE')
+        # traverse and submit
+        print(f'\nStart to add {len(banks)} offers...')
         for bank in banks:
             print(f'Adding offer of bank [{bank[0]}]: ', end='')
-            bank_id = self.__get_bank_id(bank[0])
-            bank_rank = self.__get_rank_by_id(bank_id)
-            resp = self.__submit_one_offer(bank_id, bank_rank, bank)
-            if resp == '新增报价成功':  # success
-                print('SUCCESS')
-            else:
-                failed.append(f'{str(bank)}: {resp}')
-                print('FAILED')
+            try:
+                bank_id = self.__get_bank_id(bank[0])
+                bank_rank = self.__get_rank_by_id(bank_id)
+                resp = self.__submit_one_offer(bank_id, bank_rank, bank)
+                if resp == '新增报价成功':
+                    print('SUCCESS')
+                    continue
+                else:
+                    print('FAILED')
+            except rq.exceptions.Timeout:
+                print('TIMEOUT')
+            failed.append(f'{str(bank)}: {resp}')
+        # TODO: allow manual retry on failed banks and add them to bank_*.json
         return failed
-
-    def __make_header(self) -> Dict[str, str]:
-        ''' @return Dict[str, str] - request headers\n
-        Generate headers of request and return it.
-        '''
-        return {
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-            'Connection': 'keep-alive',
-            'Content-Type': 'application/json',
-            'DNT': '1',
-            'Host': self.conf['Host'],
-            'lid': self.session_id,
-            'Origin': self.conf['Origin'],
-            'Referer': self.conf['Referer'],
-            'User-Agent': self.conf['User-Agent']
-        }
 
     def __get_existing_set(self) -> Set[str]:
         ''' @return Set[str] - set of names of existing banks\n
         Pull all existing offers and convert them into a name set.
         '''
-        headers = self.__make_header()
         payload = {
             "orgIssuerId": "",
             "noticeDate": int(1000 * time.time()),
@@ -85,29 +84,27 @@ class BondChain:
             "nonBankSign": "",
             "openSign": ""
         }
-        resp = rq.post(self.conf['offerList'], json=payload, headers=headers)
+        resp = self.__post(self.conf['offerList'], payload, timeout=5)
         return set([
-            offer['organizationShortName'] for rg in resp.json()['data'] for tg in rg['sbjRtgList']
+            offer['organizationShortName'] for rg in resp['data'] for tg in rg['sbjRtgList']
             for offer in tg['offerDtlList']
         ])
 
     def __get_deal_date(self) -> str:
         ''' @return str - next deal date
         '''
-        headers = self.__make_header()
         payload = {'dealDate': time.strftime('%Y-%m-%d', time.localtime()), 'market': '1'}
-        resp = rq.post(self.conf['nextDealDate'], json=payload, headers=headers)
-        return resp.json()['data']
+        resp = self.__post(self.conf['nextDealDate'], payload, timeout=5)
+        return resp['data']
 
     def __get_bank_id(self, bank_name: str) -> str:
         ''' @return str - institution id of the bank\n
         An empty id means the bank has no id yet; `None` means cannot find
         a bank that exactly match the given string `bank_name`.
         '''
-        headers = self.__make_header()
         payload = {'enqrVal': bank_name, 'pageNum': 1, 'pageSize': 10}
-        resp = rq.post(self.conf['fuzzyQuery'], json=payload, headers=headers)
-        for bank in resp.json()['data']['list']:
+        resp = self.__post(self.conf['fuzzyQuery'], payload, timeout=5)
+        for bank in resp['data']['list']:
             if bank['organizationShortName'] == bank_name:
                 return bank.setdefault('issuerId', '')
         return None
@@ -115,15 +112,13 @@ class BondChain:
     def __get_rank_by_id(self, bank_id: str) -> str:
         ''' @return str - corresponding rank of the institution id
         '''
-        headers = self.__make_header()
         payload = {'institutionId': bank_id}
-        resp = rq.post(self.conf['getRankById'], json=payload, headers=headers)
-        return resp.json()['data']
+        resp = self.__post(self.conf['getRankById'], payload, timeout=5)
+        return resp['data']
 
     def __submit_one_offer(self, bank_id: str, bank_rank: str, bank: List[str]) -> str:
         ''' @return str - message of this offer-submitting operation\n
         '''
-        headers = self.__make_header()
         template = {
             'issueTermNcd': '',  # duration 1~5: 1M, 3M, 6M, 9M, 1Y
             'refYield': '',
@@ -147,8 +142,44 @@ class BondChain:
             offer['issueTermNcd'] = str(i)
             offer['refYieldBulletin'] = val
             payload['offerDtlList'].append(offer)
-        resp = rq.post(self.conf['addOffer'], json=payload, headers=headers)
-        return resp.json()['msg']
+        resp = self.__post(self.conf['addOffer'], payload, timeout=5)
+        return resp['msg']
+
+    def __post(self, url: str, json: dict, **kwargs):
+        ''' @return dict - json content of response\n
+        A simple wrapper to make a POST request.\n
+        If `timeout` is set, a `requests.exceptions.Timeout` exception may be raised
+        when request keeps timing out and number of retries exceeds `trials`.
+        '''
+        timeout = kwargs.setdefault('timeout', None)
+        trials = kwargs.setdefault('trials', 3) if timeout is not None else 1
+        for i in range(1, 1 + trials):
+            try:
+                resp = rq.post(url, json=json, timeout=timeout, headers=self.__make_header())
+            except rq.exceptions.Timeout:
+                if i == trials: raise
+                continue
+            else:
+                break
+        return resp.json()
+
+    def __make_header(self) -> Dict[str, str]:
+        ''' @return Dict[str, str] - request headers\n
+        Generate headers of request and return it.
+        '''
+        return {
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Connection': 'keep-alive',
+            'Content-Type': 'application/json',
+            'DNT': '1',
+            'Host': self.conf['Host'],
+            'lid': self.session_id,
+            'Origin': self.conf['Origin'],
+            'Referer': self.conf['Referer'],
+            'User-Agent': self.conf['User-Agent']
+        }
 
 
 if __name__ == '__main__':
