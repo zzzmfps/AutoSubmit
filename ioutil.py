@@ -1,10 +1,11 @@
 import json
 import os
+import time
 from typing import List
 
 
 class Utils:
-    ''' A util class for dealing with load, save and convert on json.
+    ''' An utility class dealing with necessary I/O operations.
     '''
     @staticmethod
     def save(filename: str, data: List[str], sort_keys: bool = True):
@@ -43,8 +44,11 @@ class Utils:
             nums, j = [int(x) for x in nums], 0
             while sum(nums) > 0:
                 if nums[j] > 0:
+                    recog = raw[raw_n]
                     # some bank names need to be replaced
-                    bank = raw[raw_n] if raw[raw_n] not in bank_map else bank_map[raw[raw_n]]
+                    if recog.startswith('l'): recog = recog.lstrip('l')
+                    if recog.endswith('千'): recog = recog[:-1] + '行'
+                    bank = recog if recog not in bank_map else bank_map[recog]
                     value = raw[raw_n + 1].rstrip('%')
                     data1[j].append((bank, value))
                     nums[j] -= 1
@@ -64,16 +68,17 @@ class Utils:
         Utils.save(dst, data3)
 
     @staticmethod
-    def input_with_default(file_descr: str, default_path: str, require_exists: bool = True) -> str:
+    def input_path(file_descr: str, default_path: str, require_exists: bool = False) -> str:
         ''' @return str - path that finally takes effect
         '''
+        print()
         while True:
             val = input(f'Path to {file_descr} file: ')
             if not val: break
             if not require_exists or os.path.isfile(val): break
             print(f' * Given path [{val}] does not exist or cannot access, please try again')
         if not val:
-            print(f' * Fall back to default path [{default_path}]')
+            print(f' * Falls back to default path [{default_path}]')
             return default_path
         print(f' * Using [{val}] as path of {file_descr} file')
         return val
@@ -85,8 +90,25 @@ class Utils:
         print()
         while True:
             slt = input(f'{descr} (y/n): ').lower()
-            if slt in ['y', 'yes']: return True
+            if slt in ['y', 'yes', '']: return True
             if slt in ['n', 'no']: return False
+        return None
+
+    @staticmethod
+    def input_offset() -> int:
+        ''' @return int - milliseconds with offset
+        '''
+        print()
+        while True:
+            raw = input(f'Date offset (must NOT be positive): ')
+            if not raw:
+                print(' * Falls back to default value [0 | today]')
+                return 1000 * int(time.time())
+            elif raw == '0' or raw.startswith('-') and raw[1:].isdecimal():
+                offset = int(raw)
+                sec = int(time.time()) + 86400 * offset
+                print(f' * Offset set to [{offset} | {time.ctime(sec)}]')
+                return 1000 * sec
         return None
 
 

@@ -1,13 +1,13 @@
 {
     "comment": "请求的配置或目标 URL",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56",
-    "Host": "bondchain.io",
-    "Origin": "http://bondchain.io",
-    "Referer": "http://bondchain.io/alphain_operation/",
-    "login": "http://bondchain.io/manager-user/loginAuthc",
-    "offerList": "http://bondchain.io/ncd-operation/offer/queryOfferList",
-    "nextDealDate": "http://bondchain.io/ainas/dealDay/nextDealDate",
-    "fuzzyQuery": "http://bondchain.io/ncd-operation/offer/fuzzyQueryOrgUser",
-    "getRankById": "http://bondchain.io/ncd-operation/offer/getLatestInsCreditRankById",
-    "addOffer": "http://bondchain.io/ncd-operation/offer/addOffer"
+    "Host": "bondchain.com.cn",
+    "Origin": "http://bondchain.com.cn",
+    "Referer": "alphain_operation",
+    "login": "manager-user/loginAuthc",
+    "offerList": "ncd-operation/offer/queryOfferList",
+    "nextDealDate": "ainas/dealDay/nextDealDate",
+    "fuzzyQuery": "ncd-operation/offer/fuzzyQueryOrgUser",
+    "getRankById": "ncd-operation/offer/getLatestInsCreditRankById",
+    "addOffer": "ncd-operation/offer/addOffer"
 }
