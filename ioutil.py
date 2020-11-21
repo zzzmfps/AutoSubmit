@@ -47,7 +47,7 @@ class Utils:
                     # some bank names need to be replaced
                     recog = Utils.__simple_preprocess(raw[raw_n])
                     bank = recog if recog not in bank_map else bank_map[recog]
-                    value = raw[raw_n + 1].rstrip('%')
+                    value = raw[raw_n + 1].rstrip('0%')
                     data1[j].append((bank, value))
                     nums[j] -= 1
                     raw_n += 2

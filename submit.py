@@ -31,7 +31,7 @@ class BondChain:
         print(f'Received session id [{self.session_id}] from server')
 
     def add_offers(self, banks: list[list[str]]) -> list[list[str]]:
-        ''' @return List[List[str]] - list of failed offers\n
+        ''' @return list[list[str]] - list of failed offers\n
         Add all offers and return failed ones.
         '''
         failed = []
@@ -47,8 +47,14 @@ class BondChain:
                 print(' ! FAILED to exec prune:', ex.__str__())
                 print(' ! SKIPPED...')
             else:
-                # TODO: check each offer value, not just bank names
-                banks = [v for v in banks if v[0] not in exists]
+                for i in range(len(banks) - 1, -1, -1):
+                    if banks[i][0] not in exists: continue
+                    exist = exists[banks[i][0]]
+                    for j in range(5):
+                        if not banks[i][j + 1] or not exist[j]: continue
+                        if banks[i][j + 1] == exist[j]: banks[i][j + 1] = ''
+                        # pass (!=) to overwrite different offers
+                    if not any(banks[i][1:]): banks.pop(i)  # remove banks with 5 empty offer-values
                 print('COMPLETE')
         # traverse and submit
         print('\n********************************')
@@ -68,12 +74,11 @@ class BondChain:
                 resp = '请求超时'
                 print('TIMEOUT')
             failed.append(f'{str(bank)}: {resp}')
-        # TODO: allow manual retry on failed banks and add them to bank_*.json
         return failed
 
-    def __get_existing_set(self, notice_date: int) -> set[str]:
-        ''' @return Set[str] - set of names of existing banks\n
-        Pull all existing offers and convert them into a name set.
+    def __get_existing_set(self, notice_date: int) -> dict[str, list[str]]:
+        ''' @return dict[str, list[str]] - dict of existing offers\n
+        Pull info of all existing offers and convert it into a dict.
         '''
         payload = {
             "orgIssuerId": "",
@@ -88,10 +93,12 @@ class BondChain:
             "openSign": ""
         }
         resp = self.__post(self.conf['offerList'], payload, timeout=5)
-        return set([
-            offer['organizationShortName'] for rg in resp['data'] for tg in rg['sbjRtgList']
-            for offer in tg['offerDtlList']
-        ])
+        offer_dict = {}
+        for rg in resp['data']:
+            for i, item in enumerate(rg['sbjRtgList']):
+                for offer in item['offerDtlList']:
+                    offer_dict.setdefault(offer['organizationShortName'], ['' for _ in range(5)])[i] = offer['refYield']
+        return offer_dict
 
     def __get_deal_date(self) -> str:
         ''' @return str - next deal date
@@ -167,7 +174,7 @@ class BondChain:
         return None
 
     def __make_header(self) -> dict[str, str]:
-        ''' @return Dict[str, str] - request headers\n
+        ''' @return dict[str, str] - request headers\n
         Generate headers of request and return it.
         '''
         return {
@@ -185,6 +192,8 @@ class BondChain:
         }
 
     def __make_url(self, suffix: str) -> str:
+        ''' @return str - join an url
+        '''
         return f'{self.conf["Origin"]}/{suffix}'
 
 
