@@ -1,14 +1,13 @@
 import json
 import os
 import time
-from typing import List
 
 
 class Utils:
     ''' An utility class dealing with necessary I/O operations.
     '''
     @staticmethod
-    def save(filename: str, data: List[str], sort_keys: bool = True):
+    def save(filename: str, data: list[str], sort_keys: bool = True):
         ''' @return None\n
         Just save `data` as a json file.
         '''
@@ -32,7 +31,8 @@ class Utils:
         '''
         # read lines as a list
         with open(src, 'r', encoding='utf-8') as f:
-            raw = f.read().strip().split('\n')
+            raw = [line for line in f.read().strip().split('\n') if line]
+        assert len(raw) & 1 == 0, '数据的行数必须为偶数'
         bank_map = Utils.load('assets/bank_map.json')
         # rearrange, in original layout
         data1, raw_n = [[] for _ in range(5)], 0
@@ -44,10 +44,8 @@ class Utils:
             nums, j = [int(x) for x in nums], 0
             while sum(nums) > 0:
                 if nums[j] > 0:
-                    recog = raw[raw_n]
                     # some bank names need to be replaced
-                    if recog.startswith('l'): recog = recog.lstrip('l')
-                    if recog.endswith('千'): recog = recog[:-1] + '行'
+                    recog = Utils.__simple_preprocess(raw[raw_n])
                     bank = recog if recog not in bank_map else bank_map[recog]
                     value = raw[raw_n + 1].rstrip('%')
                     data1[j].append((bank, value))
@@ -92,7 +90,6 @@ class Utils:
             slt = input(f'{descr} (y/n): ').lower()
             if slt in ['y', 'yes', '']: return True
             if slt in ['n', 'no']: return False
-        return None
 
     @staticmethod
     def input_offset() -> int:
@@ -100,7 +97,7 @@ class Utils:
         '''
         print()
         while True:
-            raw = input(f'Date offset (must NOT be positive): ')
+            raw = input('Date offset (must NOT be positive): ')
             if not raw:
                 print(' * Falls back to default value [0 | today]')
                 return 1000 * int(time.time())
@@ -109,7 +106,15 @@ class Utils:
                 sec = int(time.time()) + 86400 * offset
                 print(f' * Offset set to [{offset} | {time.ctime(sec)}]')
                 return 1000 * sec
-        return None
+
+    @staticmethod
+    def __simple_preprocess(bank_name: str) -> str:
+        ''' @return str - revised bank name
+        Deal with some simple errors in recognization.
+        '''
+        bank_name = bank_name.strip('l|')
+        if bank_name.endswith('千'): bank_name = bank_name[:-1] + '行'
+        return bank_name
 
 
 if __name__ == "__main__":

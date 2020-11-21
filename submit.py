@@ -1,5 +1,4 @@
 import time
-from typing import Dict, List, Set
 from uuid import uuid4
 
 import requests as rq
@@ -31,7 +30,7 @@ class BondChain:
         self.session_id = resp['data']['sessionId']
         print(f'Received session id [{self.session_id}] from server')
 
-    def add_offers(self, banks: List[List[str]]) -> List[List[str]]:
+    def add_offers(self, banks: list[list[str]]) -> list[list[str]]:
         ''' @return List[List[str]] - list of failed offers\n
         Add all offers and return failed ones.
         '''
@@ -41,7 +40,6 @@ class BondChain:
         # try to remove existing offers
         prune = Utils.input_yes_or_no("Skip existing offers?")
         if prune:
-            # TODO: check each offer value, not just bank names
             print('\nPruning offer set...')
             try:
                 exists = self.__get_existing_set(notice_date)
@@ -49,6 +47,7 @@ class BondChain:
                 print(' ! FAILED to exec prune:', ex.__str__())
                 print(' ! SKIPPED...')
             else:
+                # TODO: check each offer value, not just bank names
                 banks = [v for v in banks if v[0] not in exists]
                 print('COMPLETE')
         # traverse and submit
@@ -66,12 +65,13 @@ class BondChain:
                 else:
                     print('FAILED')
             except rq.exceptions.Timeout:
+                resp = '请求超时'
                 print('TIMEOUT')
             failed.append(f'{str(bank)}: {resp}')
         # TODO: allow manual retry on failed banks and add them to bank_*.json
         return failed
 
-    def __get_existing_set(self, notice_date: int) -> Set[str]:
+    def __get_existing_set(self, notice_date: int) -> set[str]:
         ''' @return Set[str] - set of names of existing banks\n
         Pull all existing offers and convert them into a name set.
         '''
@@ -119,7 +119,7 @@ class BondChain:
         resp = self.__post(self.conf['getRankById'], payload, timeout=5)
         return resp['data']
 
-    def __submit_one_offer(self, bank_id: str, bank_rank: str, bank: List[str], notice_date: int) -> str:
+    def __submit_one_offer(self, bank_id: str, bank_rank: str, bank: list[str], notice_date: int) -> str:
         ''' @return str - message of this offer-submitting operation\n
         '''
         template = {
@@ -148,7 +148,7 @@ class BondChain:
         resp = self.__post(self.conf['addOffer'], payload, timeout=5)
         return resp['msg']
 
-    def __post(self, suffix: str, json: dict, **kwargs):
+    def __post(self, suffix: str, json: dict, **kwargs) -> dict:
         ''' @return dict - json content of response\n
         A simple wrapper to make a POST request.\n
         If `timeout` is set, a `requests.exceptions.Timeout` exception may be raised
@@ -157,17 +157,16 @@ class BondChain:
         timeout = kwargs.setdefault('timeout', None)
         trials = kwargs.setdefault('trials', 3) if timeout is not None else 1
         for i in range(1, 1 + trials):
+            url = self.__make_url(suffix)
             try:
-                url = self.__make_url(suffix)
                 resp = rq.post(url, json=json, timeout=timeout, headers=self.__make_header())
+                return resp.json()
             except rq.exceptions.Timeout:
                 if i == trials: raise
                 continue
-            else:
-                break
-        return resp.json()
+        return None
 
-    def __make_header(self) -> Dict[str, str]:
+    def __make_header(self) -> dict[str, str]:
         ''' @return Dict[str, str] - request headers\n
         Generate headers of request and return it.
         '''
