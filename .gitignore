@@ -1,4 +1,9 @@
+# code
 __pycache__
 .vscode
 assets/user.json
 test
+# build
+build
+dist
+main.spec

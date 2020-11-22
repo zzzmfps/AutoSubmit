@@ -70,7 +70,7 @@ class BondChain:
                     if resp == '新增报价成功': status = True
                 except rq.exceptions.Timeout:
                     resp = '请求超时'
-                banks.set_postfix_str(f' {bank[0]}: {resp}')
+                banks.set_postfix_str(f'{bank[0]}: {resp}')
                 if not status: failed.append(f'{str(bank)}: {resp}')
         finally:
             banks.close()
