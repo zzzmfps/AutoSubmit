@@ -108,6 +108,21 @@ class Utils:
                 return 1000 * sec
 
     @staticmethod
+    def input_max_workers() -> int:
+        ''' @return int - number of max active workers in thread pool
+        '''
+        print('\nWARN: This is an EXPERIMENTAL feature. Takes no responsibility for any side effect.')
+        while True:
+            raw = input('[Concurrency] Max workers of thread pool (must be positive): ')
+            if not raw:
+                print(' * Falls back to default value [1 | Single thread]')
+                return 1
+            elif raw.isdecimal():
+                max_workers = int(raw)
+                print(f' * Max workers set to [{max_workers}]')
+                return max_workers
+
+    @staticmethod
     def __simple_preprocess(bank_name: str) -> str:
         ''' @return str - revised bank name
         Deal with some simple errors in recognization.

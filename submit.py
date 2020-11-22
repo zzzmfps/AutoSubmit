@@ -1,3 +1,5 @@
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from typing import Iterator
 from uuid import uuid4
 
 import requests as rq
@@ -36,7 +38,24 @@ class BondChain:
         '''
         # set offset
         notice_date = Utils.input_offset()
-        # try to remove existing offers
+
+        # Exec one complete data submit operation
+        def do_full_submit(bank: list[str]) -> tuple[list[str], str]:
+            try:
+                bank_id = self.__get_bank_id(bank[0])
+                bank_rank = self.__get_rank_by_id(bank_id)
+                resp = self.__submit_one_offer(bank_id, bank_rank, bank, notice_date)
+            except rq.exceptions.Timeout:
+                resp = '请求超时'
+            return bank, resp
+
+        # Push all tasks into a thread pool
+        def push_to_thread_pool(banks: list[list[str]], max_workers: int = 1) -> Iterator[Future]:
+            executor = ThreadPoolExecutor(max_workers=max_workers)
+            all_tasks = [executor.submit(do_full_submit, bank) for bank in banks]
+            return as_completed(all_tasks)
+
+        # try to skip existing offers
         prune = Utils.input_yes_or_no('Skip existing offers?')
         if prune:
             print('\nPruning offer set...')
@@ -55,25 +74,21 @@ class BondChain:
                         # pass (!=) to overwrite different offers
                     if not any(banks[i][1:]): banks.pop(i)  # remove banks with 5 empty offer-values
                 print('COMPLETE')
+
         # traverse and submit
+        max_workers = Utils.input_max_workers()
         print(f'\n{"*" * 64}')
         print(f'\nStart to add {len(banks)} offers...')
         failed = []
         try:
-            banks = tqdm(banks, "Submitting", dynamic_ncols=True, colour='green')
-            for bank in banks:
-                status = False
-                try:
-                    bank_id = self.__get_bank_id(bank[0])
-                    bank_rank = self.__get_rank_by_id(bank_id)
-                    resp = self.__submit_one_offer(bank_id, bank_rank, bank, notice_date)
-                    if resp == '新增报价成功': status = True
-                except rq.exceptions.Timeout:
-                    resp = '请求超时'
-                banks.set_postfix_str(f'{bank[0]}: {resp}')
-                if not status: failed.append(f'{str(bank)}: {resp}')
+            all_tasks = push_to_thread_pool(banks, max_workers)
+            all_tasks = tqdm(all_tasks, 'Processing', total=len(banks), dynamic_ncols=True, colour='green')
+            for done in all_tasks:
+                bank, resp = done.result()
+                all_tasks.set_postfix_str(f'{bank[0]}: {resp}')
+                if resp != '新增报价成功': failed.append(f'{str(bank)}: {resp}')
         finally:
-            banks.close()
+            all_tasks.close()
         return failed
 
     def __get_existing_set(self, notice_date: int) -> dict[str, list[str]]:
