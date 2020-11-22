@@ -32,7 +32,7 @@ class Utils:
         # read lines as a list
         with open(src, 'r', encoding='utf-8') as f:
             raw = [line for line in f.read().strip().split('\n') if line]
-        assert len(raw) & 1 == 0, '数据的行数必须为偶数'
+        assert len(raw) & 1 == 0, 'Number of data rows is NOT even'
         bank_map = Utils.load('assets/bank_map.json')
         # rearrange, in original layout
         data1, raw_n = [[] for _ in range(5)], 0
@@ -117,5 +117,5 @@ class Utils:
         return bank_name
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     pass

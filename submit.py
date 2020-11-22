@@ -1,7 +1,7 @@
-import time
 from uuid import uuid4
 
 import requests as rq
+from tqdm import tqdm
 
 from ioutil import Utils
 
@@ -34,11 +34,10 @@ class BondChain:
         ''' @return list[list[str]] - list of failed offers\n
         Add all offers and return failed ones.
         '''
-        failed = []
         # set offset
         notice_date = Utils.input_offset()
         # try to remove existing offers
-        prune = Utils.input_yes_or_no("Skip existing offers?")
+        prune = Utils.input_yes_or_no('Skip existing offers?')
         if prune:
             print('\nPruning offer set...')
             try:
@@ -57,23 +56,24 @@ class BondChain:
                     if not any(banks[i][1:]): banks.pop(i)  # remove banks with 5 empty offer-values
                 print('COMPLETE')
         # traverse and submit
-        print('\n********************************')
+        print(f'\n{"*" * 64}')
         print(f'\nStart to add {len(banks)} offers...')
-        for bank in banks:
-            print(f'Adding offer of bank [{bank[0]}]: ', end='')
-            try:
-                bank_id = self.__get_bank_id(bank[0])
-                bank_rank = self.__get_rank_by_id(bank_id)
-                resp = self.__submit_one_offer(bank_id, bank_rank, bank, notice_date)
-                if resp == '新增报价成功':
-                    print('SUCCESS')
-                    continue
-                else:
-                    print('FAILED')
-            except rq.exceptions.Timeout:
-                resp = '请求超时'
-                print('TIMEOUT')
-            failed.append(f'{str(bank)}: {resp}')
+        failed = []
+        try:
+            banks = tqdm(banks, "Submitting", dynamic_ncols=True, colour='green')
+            for bank in banks:
+                status = False
+                try:
+                    bank_id = self.__get_bank_id(bank[0])
+                    bank_rank = self.__get_rank_by_id(bank_id)
+                    resp = self.__submit_one_offer(bank_id, bank_rank, bank, notice_date)
+                    if resp == '新增报价成功': status = True
+                except rq.exceptions.Timeout:
+                    resp = '请求超时'
+                banks.set_postfix_str(f' {bank[0]}: {resp}')
+                if not status: failed.append(f'{str(bank)}: {resp}')
+        finally:
+            banks.close()
         return failed
 
     def __get_existing_set(self, notice_date: int) -> dict[str, list[str]]:
@@ -81,16 +81,16 @@ class BondChain:
         Pull info of all existing offers and convert it into a dict.
         '''
         payload = {
-            "orgIssuerId": "",
-            "noticeDate": notice_date,
-            "sbjRtg": "",
-            "startPrice": "",
-            "endPrice": "",
-            "startAssetSize": "",
-            "endAssetSize": "",
-            "provinceList": [],
-            "nonBankSign": "",
-            "openSign": ""
+            'orgIssuerId': '',
+            'noticeDate': notice_date,
+            'sbjRtg': '',
+            'startPrice': '',
+            'endPrice': '',
+            'startAssetSize': '',
+            'endAssetSize': '',
+            'provinceList': [],
+            'nonBankSign': '',
+            'openSign': ''
         }
         resp = self.__post(self.conf['offerList'], payload, timeout=5)
         offer_dict = {}
@@ -99,13 +99,6 @@ class BondChain:
                 for offer in item['offerDtlList']:
                     offer_dict.setdefault(offer['organizationShortName'], ['' for _ in range(5)])[i] = offer['refYield']
         return offer_dict
-
-    def __get_deal_date(self) -> str:
-        ''' @return str - next deal date
-        '''
-        payload = {'dealDate': time.strftime('%Y-%m-%d', time.localtime()), 'market': '1'}
-        resp = self.__post(self.conf['nextDealDate'], payload, timeout=5)
-        return resp['data']
 
     def __get_bank_id(self, bank_name: str) -> str:
         ''' @return str - institution id of the bank\n

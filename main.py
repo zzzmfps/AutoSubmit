@@ -25,12 +25,15 @@ def start():
     # traverse data and submit them
     failed = bc.add_offers(data)
     # print failed offers
-    if failed: print(f'\n* Totally {len(failed)} fail(s):')
-    for fail in failed:
-        print(fail)
+    if not failed:
+        print('\n* All Succeeded *')
+    else:
+        print(f'\n* Totally {len(failed)} fail(s):')
+        for fail in failed:
+            print(fail)
     # end
     input('\nPress any key to continue...')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     start()
