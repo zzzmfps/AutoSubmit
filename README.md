@@ -27,3 +27,4 @@
 
 > Simple user interface. Instruction is not needed.
 >
+> Config `user.json` can be auto initialized and set. Still requires recognization tools.

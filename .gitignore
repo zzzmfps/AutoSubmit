@@ -7,4 +7,5 @@ test/*
 # build
 build
 dist
-main.spec
+cli.spec
+gui.spec

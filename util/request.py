@@ -105,7 +105,7 @@ class RequestUtil(QObject):
                     self.new_log.emit(f'{bank[0]} - SUCCESS')
         else:
             try:
-                all_tasks = tqdm(all_tasks, 'Processing', total=all_count, dynamic_ncols=True, colour='green')
+                all_tasks = tqdm(all_tasks, 'Processing', total=all_count, dynamic_ncols=True)
                 for done in all_tasks:
                     bank, resp = done.result()
                     all_tasks.set_postfix_str(f'{bank[0]}: {resp}')
