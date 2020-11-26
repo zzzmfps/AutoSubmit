@@ -15,5 +15,5 @@ class AboutQtWindow(BasicDialog):
         super().__init__('assets/ui/about_qt.ui')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     pass

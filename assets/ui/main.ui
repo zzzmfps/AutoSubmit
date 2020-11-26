@@ -85,7 +85,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="btn_choose">
+       <widget class="QToolButton" name="btn_select">
         <property name="text">
          <string>选择文件</string>
         </property>
@@ -330,7 +330,7 @@ p, li { white-space: pre-wrap; }
  </widget>
  <tabstops>
   <tabstop>date</tabstop>
-  <tabstop>btn_choose</tabstop>
+  <tabstop>btn_select</tabstop>
   <tabstop>addr</tabstop>
   <tabstop>btn_start</tabstop>
   <tabstop>btn_cancel</tabstop>

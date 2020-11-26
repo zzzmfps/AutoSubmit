@@ -26,8 +26,8 @@ class BasicWidget(QWidget):
 
     def run(self) -> None:
         self.set_attributes()
-        self.set_init_values()
         self.set_handlers()
+        self.set_init_values()
         if not self.win.isVisible(): self.win.show()
 
     def set_attributes(self) -> None:
@@ -70,8 +70,8 @@ class BasicWindow(QMainWindow):
 
     def run(self) -> None:
         self.set_attributes()
-        self.set_init_values()
         self.set_handlers()
+        self.set_init_values()
         if not self.win.isVisible(): self.win.show()
 
     def set_attributes(self) -> None:

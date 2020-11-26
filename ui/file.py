@@ -1,4 +1,3 @@
-from os import sep
 from PySide2.QtCore import Signal
 from PySide2.QtWidgets import QFileDialog
 from util.data import JsonUtil, ValidateUtil
@@ -21,6 +20,7 @@ class CreateWindow(BasicWidget):
             self.win.btn_jump.clicked.connect(self.__handle_jump)
             self.win.btn_cancel.clicked.connect(self.__handle_cancel)
 
+        # handlers
         def __handle_jump(self) -> None:
             self.__handle_decide_jump(True)
 
@@ -31,6 +31,7 @@ class CreateWindow(BasicWidget):
             self.ask_jump.emit(do_jump)
             self.win.close()
 
+    saved_success = Signal(str)
     require_jump = Signal(str)
 
     def __init__(self) -> None:
@@ -41,6 +42,7 @@ class CreateWindow(BasicWidget):
         self.win.btn_save.clicked.connect(self.__handle_save)
         self.win.btn_cancel.clicked.connect(self.win.close)
 
+    # handlers
     def __handle_text_changed(self) -> None:
         self.lines = [x for x in self.win.content.toPlainText().split('\n') if x]
         is_valid, msg = ValidateUtil.validate_txt(content=self.lines)
@@ -51,6 +53,7 @@ class CreateWindow(BasicWidget):
         self.txt_path, _ = QFileDialog.getSaveFileName(self, 'Save txt', './', '*.txt')
         with open(self.txt_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(self.lines))
+        self.saved_success.emit(self.txt_path)
         self.jump = self.JumpWindow()
         self.jump.ask_jump.connect(self.__handle_jump)
         self.jump.run()
@@ -73,12 +76,13 @@ class ConvertWindow(BasicWidget):
             self.win.table.setEnabled(True)
 
     def set_handlers(self) -> None:
-        self.win.btn_choose.clicked.connect(self.__handle_choose)
+        self.win.btn_select.clicked.connect(self.__handle_select)
         self.win.table.cellChanged.connect(self.__handle_cell_changed)
         self.win.btn_convert.clicked.connect(self.__handle_convert)
         self.win.btn_cancel.clicked.connect(self.win.close)
 
-    def __handle_choose(self) -> None:
+    # handlers
+    def __handle_select(self) -> None:
         self.txt_path, _ = QFileDialog.getOpenFileName(self, 'Load txt', './', '*.txt')
         is_valid, msg = ValidateUtil.validate_txt(txt_path=self.txt_path)
         self.win.addr.setText((self.txt_path if is_valid else msg))
@@ -113,9 +117,10 @@ class QuitWindow(BasicDialog):
         self.win.btn_quit.clicked.connect(self.__handle_quit)
         self.win.btn_cancel.clicked.connect(self.win.close)
 
+    # handlers
     def __handle_quit(self) -> None:
         self.force_quit.emit()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     pass

@@ -12,8 +12,8 @@ class RequestUtil:
     ''' Auto submit table data.
     '''
     def __init__(self) -> None:
-        self.conf = JsonUtil.load('assets/json/conf.json')
-        self.user = JsonUtil.load('assets/json/user.json')
+        self.conf = JsonUtil.load('assets/json/url.json')
+        self.user = JsonUtil.load('assets/json/user.json')[0]
         self.rmap = JsonUtil.load('assets/json/bank_rank.json')
         self.session_id = uuid4().__str__()
 

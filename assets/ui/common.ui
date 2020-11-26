@@ -53,7 +53,14 @@
      </property>
      <layout class="QGridLayout" name="gridLayout">
       <item row="1" column="1">
-       <widget class="QLineEdit" name="password"/>
+       <widget class="QLineEdit" name="password">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="placeholderText">
+         <string>请输入密码</string>
+        </property>
+       </widget>
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_2">
@@ -63,7 +70,11 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLineEdit" name="username"/>
+       <widget class="QLineEdit" name="username">
+        <property name="placeholderText">
+         <string>请输入用户名</string>
+        </property>
+       </widget>
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_1">
@@ -102,7 +113,7 @@
        </widget>
       </item>
       <item row="2" column="0">
-       <widget class="QCheckBox" name="enable_concurrency">
+       <widget class="QCheckBox" name="enable_multi_thread">
         <property name="text">
          <string>启用多线程</string>
         </property>
@@ -161,28 +172,11 @@
   <tabstop>username</tabstop>
   <tabstop>password</tabstop>
   <tabstop>skip_existing</tabstop>
-  <tabstop>enable_concurrency</tabstop>
+  <tabstop>enable_multi_thread</tabstop>
   <tabstop>max_workers</tabstop>
   <tabstop>btn_save</tabstop>
   <tabstop>btn_cancel</tabstop>
  </tabstops>
  <resources/>
- <connections>
-  <connection>
-   <sender>enable_concurrency</sender>
-   <signal>clicked(bool)</signal>
-   <receiver>max_workers</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>126</x>
-     <y>236</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>248</x>
-     <y>243</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>
