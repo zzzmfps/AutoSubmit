@@ -3,11 +3,11 @@ import os
 import time
 
 
-class Utils:
-    ''' An utility class dealing with necessary I/O operations.
+class JsonUtil:
+    ''' An utility class for json I/O operations.
     '''
     @staticmethod
-    def save(filename: str, data: list[str], sort_keys: bool = True):
+    def save(filename: str, data: object, sort_keys: bool = True) -> None:
         ''' @return None\n
         Just save `data` as a json file.
         '''
@@ -15,25 +15,30 @@ class Utils:
             json.dump(data, f, ensure_ascii=False, sort_keys=sort_keys)
 
     @staticmethod
-    def load(filename: str) -> dict:
-        ''' @return dict - dict read from json\n
+    def load(filename: str) -> object:
+        ''' @return object - dict read from json\n
         Just load json files and return.
         '''
-        if not os.path.exists(filename): return {}
+        if not os.path.exists(filename): return None
         with open(filename, 'r', encoding='utf-8') as f:
             return json.load(f)
 
     @staticmethod
-    def convert_txt_to_json(src: str, dst: str):
+    def convert_txt_to_json(src: str, dst: str) -> None:
         ''' @return None\n
         Convert and re-arrange data stored in txt to json format.
         Using `bank_map.json` to correct some special bank names.
         '''
+        def simple_preprocess(bank_name: str) -> str:
+            bank_name = bank_name.strip('l|')
+            if bank_name.endswith('千'): bank_name = bank_name[:-1] + '行'
+            return bank_name
+
         # read lines as a list
         with open(src, 'r', encoding='utf-8') as f:
             raw = [line for line in f.read().strip().split('\n') if line]
         assert len(raw) & 1 == 0, 'Number of data rows is NOT even'
-        bank_map = Utils.load('assets/bank_map.json')
+        bank_map = JsonUtil.load('assets/json/bank_map.json')
         # rearrange, in original layout
         data1, raw_n = [[] for _ in range(5)], 0
         print('\nDivide text into blocks...')
@@ -45,7 +50,7 @@ class Utils:
             while sum(nums) > 0:
                 if nums[j] > 0:
                     # some bank names need to be replaced
-                    recog = Utils.__simple_preprocess(raw[raw_n])
+                    recog = simple_preprocess(raw[raw_n])
                     bank = recog if recog not in bank_map else bank_map[recog]
                     value = raw[raw_n + 1].rstrip('0%')
                     data1[j].append((bank, value))
@@ -63,8 +68,42 @@ class Utils:
         for key in data2:
             data3.append([key, *data2[key]])
         # save it
-        Utils.save(dst, data3)
+        JsonUtil.save(dst, data3)
 
+
+class ValidateUtil:
+    ''' An utility class for file validation checks.
+    '''
+    @staticmethod
+    def validate_json(json_path) -> tuple[bool, str]:
+        ''' @return tuple[bool, str] - (is_valid, description)\n
+        Returned description may be error message if is_valid is `False`;
+        Or it is data info that parsed from the json file.
+        '''
+        try:
+            content = JsonUtil.load(json_path)
+        except json.JSONDecodeError as ex:
+            return False, ex.__str__()
+        if not isinstance(content, list):
+            return False, f'Expecting type list[list[str]] of json, not {content.__class__}'
+        count = 0
+        for i, elem in enumerate(content, 1):
+            if not isinstance(elem, list):
+                return False, f'Expecting type list[str] at {i}th element, not {elem.__class__}'
+            if len(elem) != 6:
+                return False, f'Expecting length 6 of {i}th element, but got {len(elem)}'
+            if elem[0] == '':
+                return False, f'Expecting a bank name at {i}th element, but got an empty string'
+            for j in range(6):
+                if not isinstance(elem[j], str):
+                    return False, f'Expecting type str of all values in {i}th element, not {elem[j].__class__}'
+                if j > 0 and elem[j]: count += 1
+        return True, f'{len(content)} bank(s), {count} offer(s)'
+
+
+class InputUtil:
+    ''' An utility class for keyboard inputs.
+    '''
     @staticmethod
     def input_path(file_descr: str, default_path: str, require_exists: bool = False) -> str:
         ''' @return str - path that finally takes effect
@@ -121,15 +160,6 @@ class Utils:
                 max_workers = int(raw)
                 print(f' * Max workers set to [{max_workers}]')
                 return max_workers
-
-    @staticmethod
-    def __simple_preprocess(bank_name: str) -> str:
-        ''' @return str - revised bank name
-        Deal with some simple errors in recognization.
-        '''
-        bank_name = bank_name.strip('l|')
-        if bank_name.endswith('千'): bank_name = bank_name[:-1] + '行'
-        return bank_name
 
 
 if __name__ == '__main__':

@@ -5,19 +5,19 @@ from uuid import uuid4
 import requests as rq
 from tqdm import tqdm
 
-from ioutil import Utils
+from util.data import JsonUtil, InputUtil
 
 
-class BondChain:
+class RequestUtil:
     ''' Auto submit table data.
     '''
-    def __init__(self):
-        self.conf = Utils.load('assets/conf.json')
-        self.user = Utils.load('assets/user.json')
-        self.rmap = Utils.load('assets/bank_rank.json')
+    def __init__(self) -> None:
+        self.conf = JsonUtil.load('assets/json/conf.json')
+        self.user = JsonUtil.load('assets/json/user.json')
+        self.rmap = JsonUtil.load('assets/json/bank_rank.json')
         self.session_id = uuid4().__str__()
 
-    def login(self):
+    def login(self) -> None:
         ''' @return None\n
         Login to get session id.
         '''
@@ -37,7 +37,7 @@ class BondChain:
         Add all offers and return failed ones.
         '''
         # set offset
-        notice_date = Utils.input_offset()
+        notice_date = InputUtil.input_offset()
 
         # Exec one complete data submit operation
         def do_full_submit(bank: list[str]) -> tuple[list[str], str]:
@@ -56,7 +56,7 @@ class BondChain:
             return as_completed(all_tasks)
 
         # try to skip existing offers
-        prune = Utils.input_yes_or_no('Skip existing offers?')
+        prune = InputUtil.input_yes_or_no('Skip existing offers?')
         if prune:
             print('\nPruning offer set...')
             try:
@@ -76,7 +76,7 @@ class BondChain:
                 print('COMPLETE')
 
         # traverse and submit
-        max_workers = Utils.input_max_workers()
+        max_workers = InputUtil.input_max_workers()
         print(f'\n{"*" * 64}')
         print(f'\nStart to add {len(banks)} offers...')
         failed = []

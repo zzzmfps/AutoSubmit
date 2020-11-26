@@ -1,8 +1,9 @@
 # code
 __pycache__
 .vscode
-assets/user.json
-test
+assets/json/user.json
+test/*
+!test/.gitkeep
 # build
 build
 dist

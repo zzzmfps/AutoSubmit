@@ -14,5 +14,3 @@
     ```
 
 2. Recognize table data using Tencent QQ (Ctrl + Alt + O) or something else, save data as a plain-text file and place it under `test` folder. Each line is whether a bank-name or a offer-value.
-
-3. Run `main.py`
