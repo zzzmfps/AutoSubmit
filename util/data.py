@@ -24,10 +24,26 @@ class JsonUtil:
             return json.load(f)
 
     @staticmethod
-    def convert_txt_to_json(src: str, dst: str) -> None:
+    def convert(src: str, dst: str) -> None:
         ''' @return None\n
         Convert and re-arrange data stored in txt to json format.
         Using `bank_map.json` to correct some special bank names.
+        '''
+        print('\nDivide text into blocks...')
+        division = []
+        for rg in range(1, 5):  # 4 rank groups
+            nums = input(f'Nums in rank group {rg} of each column (press enter to skip): ').split(' ')
+            if len(nums) == 1 and nums[0] == '': continue
+            assert len(nums) == 5, 'Invalid input'  # 1M, 3M, 6M, 9M, 1Y
+            division.append([int(x) for x in nums])
+        JsonUtil.convert_without_input(src, dst, division)
+
+    @staticmethod
+    def convert_without_input(src: str, dst: str, division: list[list[int]]) -> None:
+        ''' @return None\n
+        Convert and re-arrange data stored in txt to json format.
+        Using `bank_map.json` to correct some special bank names.
+        Use no keyboard input.
         '''
         def simple_preprocess(bank_name: str) -> str:
             bank_name = bank_name.strip('l|')
@@ -36,17 +52,13 @@ class JsonUtil:
 
         # read lines as a list
         with open(src, 'r', encoding='utf-8') as f:
-            raw = [line for line in f.read().strip().split('\n') if line]
+            raw = [line for line in f.read().split('\n') if line]
         assert len(raw) & 1 == 0, 'Number of data rows is NOT even'
         bank_map = JsonUtil.load('assets/json/bank_map.json')
         # rearrange, in original layout
         data1, raw_n = [[] for _ in range(5)], 0
-        print('\nDivide text into blocks...')
-        for rg in range(1, 5):  # 4 rank groups
-            nums = input(f'Nums in rank group {rg} of each column (press enter to skip): ').split(' ')
-            if len(nums) == 1 and nums[0] == '': continue
-            assert len(nums) == 5, 'Invalid input'  # 1M, 3M, 6M, 9M, 1Y
-            nums, j = [int(x) for x in nums], 0
+        for rg in range(4):  # 4 rank groups
+            nums, j = division[rg], 0
             while sum(nums) > 0:
                 if nums[j] > 0:
                     # some bank names need to be replaced
@@ -57,7 +69,7 @@ class JsonUtil:
                     nums[j] -= 1
                     raw_n += 2
                 j = (j + 1) % 5
-        assert raw_n == len(raw), f'Convert failed: {(len(raw)-raw_n)>>1} items left not processed'
+        assert raw_n == len(raw), f'{(len(raw)-raw_n)>>1} items left not processed'
         # from list to dict, by bank name
         data2 = dict()
         for i, col in enumerate(data1):
@@ -75,7 +87,33 @@ class ValidateUtil:
     ''' An utility class for file validation checks.
     '''
     @staticmethod
-    def validate_json(json_path) -> tuple[bool, str]:
+    def validate_txt(txt_path: str = '', content: list[str] = []) -> tuple[bool, str]:
+        ''' @return tuple[bool, str] - (is_valid, description)\n
+        Pass either `txt_path` or `content` to this method.
+        Returned description may be error message if is_valid is `False`;
+        Or it is data info that parsed from the txt file/content.
+        '''
+        if not txt_path and not content:
+            return False, 'Expected something to validate, but got nothing'
+        if txt_path and content:
+            return False, 'Confused on which value to use, do not pass both two parameters'
+        if txt_path:
+            with open(txt_path, 'r', encoding='utf-8') as f:
+                content = [x for x in f.read().split('\n') if x]
+        if len(content) & 1 != 0:
+            return False, 'Number of lines must be even'
+        char_set1 = set('1234567890.%')  # chars used and only used in offer values
+        char_set2 = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')  # should not appear
+        for i in range(0, len(content), 2):  # bank names
+            if set(content[i]).intersection(char_set1.union(char_set2)):
+                return False, f'Expected a bank name at significant line {i}, but got {content[i]}'
+        for i in range(1, len(content), 2):  # offer values
+            if not set(content[i]).issubset(char_set1):
+                return False, f'Expected a offer value at significant line {i}, but got {content[i]}'
+        return True, f'Found {len(content)>>1} offers'
+
+    @staticmethod
+    def validate_json(json_path: str) -> tuple[bool, str]:
         ''' @return tuple[bool, str] - (is_valid, description)\n
         Returned description may be error message if is_valid is `False`;
         Or it is data info that parsed from the json file.
@@ -85,18 +123,18 @@ class ValidateUtil:
         except json.JSONDecodeError as ex:
             return False, ex.__str__()
         if not isinstance(content, list):
-            return False, f'Expecting type list[list[str]] of json, not {content.__class__}'
+            return False, f'Expected type list[list[str]] of json, not {content.__class__}'
         count = 0
         for i, elem in enumerate(content, 1):
             if not isinstance(elem, list):
-                return False, f'Expecting type list[str] at {i}th element, not {elem.__class__}'
+                return False, f'Expected type list[str] at {i}th element, not {elem.__class__}'
             if len(elem) != 6:
-                return False, f'Expecting length 6 of {i}th element, but got {len(elem)}'
+                return False, f'Expected length 6 of {i}th element, but got {len(elem)}'
             if elem[0] == '':
-                return False, f'Expecting a bank name at {i}th element, but got an empty string'
+                return False, f'Expected a bank name at {i}th element, but got an empty string'
             for j in range(6):
                 if not isinstance(elem[j], str):
-                    return False, f'Expecting type str of all values in {i}th element, not {elem[j].__class__}'
+                    return False, f'Expected type str of all values in {i}th element, not {elem[j].__class__}'
                 if j > 0 and elem[j]: count += 1
         return True, f'{len(content)} bank(s), {count} offer(s)'
 

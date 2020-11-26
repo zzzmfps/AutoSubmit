@@ -14,7 +14,7 @@ if __name__ == '__main__':
         if os.path.exists(dst_json) and InputUtil.input_yes_or_no('Json already exists. Skip exec convertion?'):
             print(f'Skipped convertion. Using existing Json [{dst_json}] instead')
         else:
-            JsonUtil.convert_txt_to_json(src_text, dst_json)
+            JsonUtil.convert(src_text, dst_json)
         bc = RequestUtil()
         bc.login()
         data = JsonUtil.load(dst_json)

@@ -1,8 +1,8 @@
 import time
-from util.data import ValidateUtil
 
 from PySide2.QtCore import QDate
 from PySide2.QtWidgets import QFileDialog
+from util.data import ValidateUtil
 
 from ui.basic import BasicWindow
 from ui.config import CommonWindow
@@ -14,8 +14,7 @@ class MainWindow(BasicWindow):
     ''' Define behaviour of main window.
     '''
     def __init__(self) -> None:
-        super().__init__()
-        self.ui_path = 'assets/ui/main.ui'
+        super().__init__('assets/ui/main.ui')
 
     def run(self) -> None:
         super().run()
@@ -50,28 +49,42 @@ class MainWindow(BasicWindow):
             self.__add_log('local', 'Selecting cancelled')
             return
         is_valid, msg = ValidateUtil.validate_json(json_path)
-        self.__add_log('local', f'Selected [{json_path}] is {"parsed as" if is_valid else "invalid"}: {msg}')
         if is_valid:
+            self.__add_log('local', f'Selected [{json_path}] is parsed as: {msg}')
             self.win.addr.setText(json_path)
             self.win.btn_start.setEnabled(True)
+        else:
+            self.__add_log('local', f'Selected [{json_path}] is invalid: {msg}', 'ERRO')
+            self.win.addr.clear()
+            self.win.btn_start.setDisabled(True)
 
     def __handle_start(self) -> None:
         self.is_running = True
+        self.win.btn_choose.setDisabled(True)
         self.win.btn_start.setDisabled(True)
         self.win.btn_cancel.setEnabled(True)
 
     def __handle_cancel(self) -> None:
         self.is_running = False
         self.win.btn_cancel.setDisabled(True)
+        self.win.btn_choose.setEnabled(True)
         self.win.btn_start.setEnabled(True)
 
     def __handle_create_txt(self) -> None:
         self.create_txt = CreateWindow()
+        self.create_txt.require_jump.connect(self.__handle_jump)
         self.create_txt.run()
 
-    def __handle_convert_json(self) -> None:
-        self.convert_json = ConvertWindow()
+    def __handle_jump(self, txt_path: str) -> None:
+        self.__handle_convert_json(txt_path)
+
+    def __handle_convert_json(self, txt_path: str = '') -> None:
+        self.convert_json = ConvertWindow(txt_path)
+        self.convert_json.converted.connect(self.__handle_converted)
         self.convert_json.run()
+
+    def __handle_converted(self, json_path: str) -> None:
+        self.win.addr.setText(json_path)
 
     def __handle_quit(self) -> None:
         if self.is_running:

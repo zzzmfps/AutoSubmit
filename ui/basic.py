@@ -20,17 +20,15 @@ class WidgetUtil:
 class BasicWidget(QWidget):
     ''' Define basic behaviour of widgets.
     '''
-    def __init__(self) -> None:
+    def __init__(self, ui_path) -> None:
         super().__init__()
-        self.win = None
-        self.ui_path = ''
+        self.win = WidgetUtil.load_window(ui_path)
 
     def run(self) -> None:
-        if self.win is None: self.win = WidgetUtil.load_window(self.ui_path)
         self.set_attributes()
-        if not self.win.isVisible(): self.win.show()
         self.set_init_values()
         self.set_handlers()
+        if not self.win.isVisible(): self.win.show()
 
     def set_attributes(self) -> None:
         pass
@@ -45,16 +43,14 @@ class BasicWidget(QWidget):
 class BasicDialog(QDialog):
     ''' Define basic behaviour of dialogs.
     '''
-    def __init__(self) -> None:
+    def __init__(self, ui_path) -> None:
         super().__init__()
-        self.win = None
-        self.ui_path = ''
+        self.win = WidgetUtil.load_window(ui_path)
 
     def run(self) -> None:
-        if self.win is None: self.win = WidgetUtil.load_window(self.ui_path)
         self.set_attributes()
-        if not self.win.isVisible(): self.win.show()
         self.set_handlers()
+        if not self.win.isVisible(): self.win.show()
 
     def set_attributes(self) -> None:
         self.win.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
@@ -66,19 +62,17 @@ class BasicDialog(QDialog):
 class BasicWindow(QMainWindow):
     ''' Define basic behaviour of windows. Should be unique.
     '''
-    def __init__(self) -> None:
+    def __init__(self, ui_path) -> None:
         self.app = QApplication([])
         super().__init__()
-        self.win = None
-        self.ui_path = ''
+        self.win = WidgetUtil.load_window(ui_path)
         self.is_running = False
 
     def run(self) -> None:
-        if self.win is None: self.win = WidgetUtil.load_window(self.ui_path)
         self.set_attributes()
-        if not self.win.isVisible(): self.win.show()
         self.set_init_values()
         self.set_handlers()
+        if not self.win.isVisible(): self.win.show()
 
     def set_attributes(self) -> None:
         pass

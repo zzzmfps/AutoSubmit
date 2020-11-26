@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>quit</class>
- <widget class="QDialog" name="quit">
+ <class>jump</class>
+ <widget class="QDialog" name="jump">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -53,7 +53,7 @@
    <item>
     <layout class="QHBoxLayout" name="btn_group">
      <item>
-      <widget class="QPushButton" name="btn_quit">
+      <widget class="QPushButton" name="btn_jump">
        <property name="text">
         <string>转换</string>
        </property>
