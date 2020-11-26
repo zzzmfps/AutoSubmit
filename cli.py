@@ -15,10 +15,10 @@ if __name__ == '__main__':
             print(f'Skipped convertion. Using existing Json [{dst_json}] instead')
         else:
             JsonUtil.convert(src_text, dst_json)
-        bc = RequestUtil()
-        bc.login()
+        req = RequestUtil()
+        req.login()
         data = JsonUtil.load(dst_json)
-        failed = bc.add_offers(data)
+        failed = req.add_offers(data)
         if not failed:
             print('\n* All Succeeded *')
         else:

@@ -1,8 +1,10 @@
 import time
+from threading import Thread
 
 from PySide2.QtCore import QDate
 from PySide2.QtWidgets import QFileDialog
-from util.data import ValidateUtil
+from util.data import JsonUtil, ValidateUtil
+from util.request import RequestUtil
 
 from ui.basic import BasicWindow
 from ui.config import CommonWindow
@@ -24,7 +26,6 @@ class MainWindow(BasicWindow):
         self.win.date.dateChanged.connect(self.__handle_date)
         self.win.btn_select.clicked.connect(self.__handle_select)
         self.win.btn_start.clicked.connect(self.__handle_start)
-        self.win.btn_cancel.clicked.connect(self.__handle_cancel)
         self.win.create_txt.triggered.connect(self.__handle_create_txt)
         self.win.convert.triggered.connect(self.__handle_convert_json)
         self.win.quit.triggered.connect(self.__handle_quit)
@@ -46,7 +47,7 @@ class MainWindow(BasicWindow):
         self.__add_log('local', 'Selecting json file...')
         json_path, _ = QFileDialog.getOpenFileName(self, 'Load Json', './', '*.json')
         if not json_path:
-            self.__add_log('local', 'Selecting cancelled')
+            self.__add_log('local', 'Selection cancelled')
         else:
             self.__check_selected(json_path)
 
@@ -55,16 +56,15 @@ class MainWindow(BasicWindow):
         self.is_running = True
         self.win.btn_select.setDisabled(True)
         self.win.btn_start.setDisabled(True)
-        self.win.btn_cancel.setEnabled(True)
-        # TODO: exec
+        self.win.progress_bar.setValue(0)
+        Thread(target=self.__exec_submit).start()
 
-    def __handle_cancel(self) -> None:
-        self.is_running = False
-        self.win.btn_cancel.setDisabled(True)
-        self.win.btn_select.setEnabled(True)
-        self.win.btn_start.setEnabled(True)
-        # TODO: cancel
-        self.__add_log('local', 'Task cancelled')
+    def __handle_submit_log(self, log: str) -> None:
+        level = 'ERRO' if log.startswith(' ! ') else 'INFO'
+        self.__add_log('network', log.lstrip(' !'), level)
+
+    def __handle_update_percent(self, perc: int) -> None:
+        self.win.progress_bar.setValue(perc)
 
     def __handle_create_txt(self) -> None:
         self.create_txt = CreateWindow()
@@ -134,6 +134,39 @@ class MainWindow(BasicWindow):
             self.__add_log('local', f'Selected [{json_path}] is invalid: {msg}', 'ERRO')
             self.win.addr.clear()
             self.win.btn_start.setDisabled(True)
+
+    def __exec_submit(self) -> None:
+        req = RequestUtil(True)
+        req.new_log.connect(self.__handle_submit_log)
+        req.cur_percent.connect(self.__handle_update_percent)
+        data = JsonUtil.load(self.win.addr.text())
+        offset = self.win.date.date().daysTo(QDate.currentDate())
+        if offset < 0:
+            self.__add_log('local', 'cannot submit offers from future', 'ERRO')
+            return
+        notice_date = 1000 * (int(time.time()) - 86400 * offset)
+        try:
+            req.login()
+            failed = req.add_offers(data, notice_date)
+            time.sleep(0.5)  # ensure order of logs
+        except Exception as ex:
+            success = False
+            self.__add_log('network', ex.__str__(), 'ERRO')
+        else:
+            success = True
+            if not failed:
+                self.__add_log('network', '* All Succeeded *')
+            else:
+                self.__add_log('network', f'* Totally {len(failed)} fail(s):', 'WARN')
+                for fail in failed:
+                    self.__add_log('network', str(fail), 'WARN')
+        self.win.btn_start.setEnabled(True)
+        self.win.btn_select.setEnabled(True)
+        self.is_running = False
+        if success:
+            self.__add_log('local', 'Submit task completed')
+        else:
+            self.__add_log('local', 'Submit task failed', 'ERRO')
 
 
 if __name__ == '__main__':

@@ -29,7 +29,7 @@
     <item>
      <layout class="QHBoxLayout" name="control">
       <item>
-       <widget class="QDateEdit" name="date">
+       <widget class="QDateTimeEdit" name="date">
         <property name="dateTime">
          <datetime>
           <hour>0</hour>
@@ -135,37 +135,6 @@
         </property>
         <property name="text">
          <string>开始</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="btn_cancel">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>80</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>取消</string>
-        </property>
-        <property name="checkable">
-         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -333,7 +302,6 @@ p, li { white-space: pre-wrap; }
   <tabstop>btn_select</tabstop>
   <tabstop>addr</tabstop>
   <tabstop>btn_start</tabstop>
-  <tabstop>btn_cancel</tabstop>
   <tabstop>log_local</tabstop>
   <tabstop>log_network</tabstop>
  </tabstops>
