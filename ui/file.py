@@ -114,12 +114,8 @@ class QuitWindow(BasicDialog):
         super().__init__('assets/ui/quit.ui')
 
     def set_handlers(self) -> None:
-        self.win.btn_quit.clicked.connect(self.__handle_quit)
+        self.win.btn_quit.clicked.connect(self.force_quit.emit)
         self.win.btn_cancel.clicked.connect(self.win.close)
-
-    # handlers
-    def __handle_quit(self) -> None:
-        self.force_quit.emit()
 
 
 if __name__ == '__main__':

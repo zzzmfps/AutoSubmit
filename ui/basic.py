@@ -66,13 +66,15 @@ class BasicWindow(QMainWindow):
         self.app = QApplication([])
         super().__init__()
         self.win = WidgetUtil.load_window(ui_path)
+        self.setCentralWidget(self.win)
+        self.resize(self.win.size())
         self.is_running = False
 
     def run(self) -> None:
         self.set_attributes()
         self.set_handlers()
         self.set_init_values()
-        if not self.win.isVisible(): self.win.show()
+        if not self.isVisible(): self.show()
 
     def set_attributes(self) -> None:
         pass

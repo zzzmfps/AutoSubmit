@@ -1,7 +1,9 @@
+import sys
 import time
 from threading import Thread
 
 from PySide2.QtCore import QDate
+from PySide2.QtGui import QCloseEvent
 from PySide2.QtWidgets import QFileDialog
 from util.data import JsonUtil, ValidateUtil
 from util.request import RequestUtil
@@ -20,7 +22,7 @@ class MainWindow(BasicWindow):
 
     def run(self) -> None:
         super().run()
-        self.app.exec_()
+        sys.exit(self.app.exec_())
 
     def set_handlers(self) -> None:
         self.win.date.dateChanged.connect(self.__handle_date)
@@ -28,7 +30,7 @@ class MainWindow(BasicWindow):
         self.win.btn_start.clicked.connect(self.__handle_start)
         self.win.create_txt.triggered.connect(self.__handle_create_txt)
         self.win.convert.triggered.connect(self.__handle_convert_json)
-        self.win.quit.triggered.connect(self.__handle_quit)
+        self.win.quit.triggered.connect(self.close)
         self.win.common.triggered.connect(self.__handle_common)
         self.win.about.triggered.connect(self.__handle_about)
         self.win.about_qt.triggered.connect(self.__handle_about_qt)
@@ -37,6 +39,16 @@ class MainWindow(BasicWindow):
         local_time = time.localtime(time.time())
         date = QDate(local_time.tm_year, local_time.tm_mon, local_time.tm_mday)
         self.win.date.setDate(date)
+
+    # events
+    def closeEvent(self, event: QCloseEvent) -> None:
+        if self.is_running:
+            self.quit = QuitWindow()
+            self.quit.force_quit.connect(self.app.quit)
+            self.quit.run()
+        else:
+            self.app.quit()
+        event.ignore()
 
     # handlers
     def __handle_date(self, new_date: QDate) -> None:
@@ -57,7 +69,7 @@ class MainWindow(BasicWindow):
         self.win.btn_select.setDisabled(True)
         self.win.btn_start.setDisabled(True)
         self.win.progress_bar.setValue(0)
-        Thread(target=self.__exec_submit).start()
+        Thread(target=self.__exec_submit, daemon=True).start()
 
     def __handle_submit_log(self, log: str) -> None:
         level = 'ERRO' if log.startswith(' ! ') else 'INFO'
@@ -87,14 +99,6 @@ class MainWindow(BasicWindow):
         self.__add_log('local', f'Converted and saved data into [{json_path}]')
         self.__check_selected(json_path)
 
-    def __handle_quit(self) -> None:
-        if self.is_running:
-            self.quit = QuitWindow()
-            self.quit.force_quit.connect(self.app.quit)
-            self.quit.run()
-        else:
-            self.app.quit()
-
     def __handle_common(self) -> None:
         self.common = CommonWindow()
         self.common.conf_status.connect(self.__handle_load_conf)
@@ -118,6 +122,8 @@ class MainWindow(BasicWindow):
 
     # helpers
     def __add_log(self, target: str, log: str, level: str = 'INFO') -> None:
+        color = {'INFO': 'green', 'WARN': 'orange', 'ERRO': 'red'}
+        level = f'<span style="color: {color[level]};">{level}</span>'
         formatted = f'[{time.ctime(time.time())}] {level} -> {log}'
         if target.lower() == 'local':
             self.win.log_local.append(formatted)
@@ -136,13 +142,27 @@ class MainWindow(BasicWindow):
             self.win.btn_start.setDisabled(True)
 
     def __exec_submit(self) -> None:
+        ''' return None\n
+        Exec the entire process of submission, including load data, login,
+        submit, print logs and recover the state of related widgets.
+        '''
+        def finish_or_recover(success: bool):
+            self.win.btn_start.setEnabled(True)
+            self.win.btn_select.setEnabled(True)
+            self.is_running = False
+            if success:
+                self.__add_log('local', 'Submit task completed')
+            else:
+                self.__add_log('local', 'Submit task failed', 'ERRO')
+
         req = RequestUtil(True)
         req.new_log.connect(self.__handle_submit_log)
         req.cur_percent.connect(self.__handle_update_percent)
         data = JsonUtil.load(self.win.addr.text())
         offset = self.win.date.date().daysTo(QDate.currentDate())
         if offset < 0:
-            self.__add_log('local', 'cannot submit offers from future', 'ERRO')
+            self.__add_log('local', 'Cannot submit offers from future', 'ERRO')
+            finish_or_recover(False)
             return
         notice_date = 1000 * (int(time.time()) - 86400 * offset)
         try:
@@ -160,13 +180,7 @@ class MainWindow(BasicWindow):
                 self.__add_log('network', f'* Totally {len(failed)} fail(s):', 'WARN')
                 for fail in failed:
                     self.__add_log('network', str(fail), 'WARN')
-        self.win.btn_start.setEnabled(True)
-        self.win.btn_select.setEnabled(True)
-        self.is_running = False
-        if success:
-            self.__add_log('local', 'Submit task completed')
-        else:
-            self.__add_log('local', 'Submit task failed', 'ERRO')
+        finish_or_recover(success)
 
 
 if __name__ == '__main__':
