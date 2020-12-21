@@ -45,7 +45,7 @@ class RequestUtil(QObject):
         # set offset
         if notice_date is None: notice_date = InputUtil.input_offset()
 
-        # Exec one complete data submit operation
+        # exec one complete data submit operation
         def do_full_submit(bank: list[str]) -> tuple[list[str], str]:
             try:
                 bank_id = self.__get_bank_id(bank[0])
@@ -55,7 +55,7 @@ class RequestUtil(QObject):
                 resp = '请求超时'
             return bank, resp
 
-        # Push all tasks into a thread pool
+        # push all tasks into a thread pool
         def push_to_thread_pool(banks: list[list[str]], max_workers: int = 1) -> Iterator[Future]:
             executor = ThreadPoolExecutor(max_workers=max_workers)
             all_tasks = [executor.submit(do_full_submit, bank) for bank in banks]

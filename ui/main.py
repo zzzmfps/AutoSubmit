@@ -1,5 +1,6 @@
 import sys
 import time
+import os
 from threading import Thread
 
 from PySide2.QtCore import QDate
@@ -25,13 +26,20 @@ class MainWindow(BasicWindow):
         sys.exit(self.app.exec_())
 
     def set_handlers(self) -> None:
+        # main panel
         self.win.date.dateChanged.connect(self.__handle_date)
         self.win.btn_select.clicked.connect(self.__handle_select)
         self.win.btn_start.clicked.connect(self.__handle_start)
+        # file
         self.win.create_txt.triggered.connect(self.__handle_create_txt)
         self.win.convert.triggered.connect(self.__handle_convert_json)
         self.win.quit.triggered.connect(self.close)
+        # config
         self.win.common.triggered.connect(self.__handle_common)
+        self.win.name.triggered.connect(self.__handle_name)
+        self.win.rank.triggered.connect(self.__handle_rank)
+        self.win.url.triggered.connect(self.__handle_url)
+        # help
         self.win.about.triggered.connect(self.__handle_about)
         self.win.about_qt.triggered.connect(self.__handle_about_qt)
 
@@ -111,6 +119,16 @@ class MainWindow(BasicWindow):
             self.__add_log('local', f'Config [{conf_path}] is loaded')
         else:
             self.__add_log('local', f'Saved config into [{conf_path}]: {add_msg}')
+
+    def __handle_name(self) -> None:
+        os.system('notepad.exe assets/json/bank_map.json')
+
+    def __handle_rank(self) -> None:
+        # 1 AAA, 2 AA+, 3 AA, 4 AA-, 5 A+, 6 A, 7 A-, 8 BBB+
+        os.system('notepad.exe assets/json/bank_rank.json')
+
+    def __handle_url(self) -> None:
+        os.system('notepad.exe assets/json/url.json')
 
     def __handle_about(self) -> None:
         self.about = AboutWindow()

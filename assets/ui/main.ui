@@ -265,25 +265,16 @@ p, li { white-space: pre-wrap; }
    </property>
   </action>
   <action name="name">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>校正名称</string>
    </property>
   </action>
   <action name="rank">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>标注评级</string>
    </property>
   </action>
   <action name="url">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>编辑 URL 规则</string>
    </property>
