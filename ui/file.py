@@ -96,7 +96,7 @@ class ConvertWindow(BasicWidget):
         division = [[int(self.win.table.item(i, j).text()) for j in range(5)] for i in range(4)]
         json_path, _ = QFileDialog.getSaveFileName(self, 'Save json', './', '*.json')
         try:
-            JsonUtil.convert_without_input(self.txt_path, json_path, division)
+            JsonUtil.convert(self.txt_path, json_path, division)
         except Exception as ex:
             self.win.addr.setText(f'Convert failed: {ex.__str__()}')
             self.win.btn_convert.setDisabled(True)

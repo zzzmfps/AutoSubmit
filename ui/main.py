@@ -80,8 +80,8 @@ class MainWindow(BasicWindow):
         Thread(target=self.__exec_submit, daemon=True).start()
 
     def __handle_submit_log(self, log: str) -> None:
-        level = 'ERRO' if log.startswith(' ! ') else 'INFO'
-        self.__add_log('network', log.lstrip(' !'), level)
+        level = 'ERRO' if log.startswith('! ') else 'INFO'
+        self.__add_log('network', log.lstrip('! '), level)
 
     def __handle_update_percent(self, perc: int) -> None:
         self.win.progress_bar.setValue(perc)
@@ -173,7 +173,7 @@ class MainWindow(BasicWindow):
             else:
                 self.__add_log('local', 'Submit task failed', 'ERRO')
 
-        req = RequestUtil(True)
+        req = RequestUtil()
         req.new_log.connect(self.__handle_submit_log)
         req.cur_percent.connect(self.__handle_update_percent)
         data = JsonUtil.load(self.win.addr.text())
@@ -184,7 +184,8 @@ class MainWindow(BasicWindow):
             return
         notice_date = 1000 * (int(time.time()) - 86400 * offset)
         try:
-            req.login()
+            msg = req.login()
+            if msg: raise Exception(msg)
             failed = req.add_offers(data, notice_date)
             time.sleep(0.5)  # ensure order of logs
         except Exception as ex:

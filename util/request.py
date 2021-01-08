@@ -4,9 +4,8 @@ from uuid import uuid4
 
 import requests as rq
 from PySide2.QtCore import QObject, Signal
-from tqdm import tqdm
 
-from util.data import InputUtil, JsonUtil
+from util.data import JsonUtil
 
 
 class RequestUtil(QObject):
@@ -15,35 +14,32 @@ class RequestUtil(QObject):
     new_log = Signal(str)
     cur_percent = Signal(int)
 
-    def __init__(self, use_signal: bool = False) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.conf = JsonUtil.load('assets/json/url.json')
         self.user, self.comm = JsonUtil.load('assets/json/user.json')
         self.rmap = JsonUtil.load('assets/json/bank_rank.json')
         self.session_id = uuid4().__str__()
-        self.use_signal = use_signal
 
-    def login(self) -> None:
-        ''' @return None\n
+    def login(self) -> str:
+        ''' @return str - error msg if any\n
         Login to get session id.
         '''
-        self.__print_or_emit('\nTry to login...')
+        self.__send_logs('\nTry to login...')
         try:
             resp = self.__post(self.conf['login'], self.user, timeout=10)
             if resp['status'] != '0': raise rq.exceptions.ConnectionError(resp['msg'])
         except rq.exceptions.RequestException as ex:
-            self.__print_or_emit(' ! FAILED to login:', ex.__str__())
-            self.__print_or_emit(' ! Exiting...\n')
-            exit(1)
+            self.__send_logs(' ! Process terminated\n')
+            return f'FAILED to login: {ex.__str__()}'
         self.session_id = resp['data']['sessionId']
-        self.__print_or_emit(f'Received session id [{self.session_id}] from server')
+        self.__send_logs(f'Received session id [{self.session_id}] from server')
+        return ''
 
     def add_offers(self, banks: list[list[str]], notice_date: int = None) -> list[list[str]]:
         ''' @return list[list[str]] - list of failed offers\n
         Add all offers and return failed ones.
         '''
-        # set offset
-        if notice_date is None: notice_date = InputUtil.input_offset()
 
         # exec one complete data submit operation
         def do_full_submit(bank: list[str]) -> tuple[list[str], str]:
@@ -62,17 +58,13 @@ class RequestUtil(QObject):
             return as_completed(all_tasks)
 
         # try to skip existing offers
-        if self.use_signal:
-            prune = self.comm['skipExisting']
-        else:
-            prune = InputUtil.input_yes_or_no('Skip existing offers?')
-        if prune:
-            self.__print_or_emit('\nPruning offer set...')
+        if self.comm['skipExisting']:
+            self.__send_logs('\nPruning offer set...')
             try:
                 exists = self.__get_existing_set(notice_date)
             except rq.exceptions.Timeout as ex:
-                self.__print_or_emit(' ! FAILED to exec prune:', ex.__str__())
-                self.__print_or_emit(' ! SKIPPED...')
+                self.__send_logs(' ! FAILED to exec prune:', ex.__str__())
+                self.__send_logs(' ! SKIPPED...')
             else:
                 for i in range(len(banks) - 1, -1, -1):
                     if banks[i][0] not in exists: continue
@@ -82,36 +74,22 @@ class RequestUtil(QObject):
                         if banks[i][j + 1] == exist[j]: banks[i][j + 1] = ''
                         # pass (!=) to overwrite different offers
                     if not any(banks[i][1:]): banks.pop(i)  # remove banks with 5 empty offer-values
-                self.__print_or_emit('COMPLETE')
+                self.__send_logs('COMPLETE')
 
         # traverse and submit
-        if self.use_signal:
-            max_workers = self.comm['maxWorkers'] if self.comm['enableMultiThread'] else 1
-        else:
-            max_workers = InputUtil.input_max_workers()
+        max_workers = self.comm['maxWorkers'] if self.comm['enableMultiThread'] else 1
         all_count = len(banks)
-        if not self.use_signal: print(f'\n{"*" * 64}')
-        self.__print_or_emit(f'\nStart to add {all_count} offers...')
+        self.__send_logs(f'\nStart to add {all_count} offers...')
         failed = []
 
         all_tasks = push_to_thread_pool(banks, max_workers)
-        if self.use_signal:
-            for i, done in enumerate(all_tasks, 1):
-                bank, resp = done.result()
-                self.cur_percent.emit(int(100 * i / all_count))
-                if resp != '新增报价成功':
-                    failed.append(f'{str(bank)}: {resp}')
-                else:
-                    self.new_log.emit(f'{bank[0]} - SUCCESS')
-        else:
-            try:
-                all_tasks = tqdm(all_tasks, 'Processing', total=all_count, dynamic_ncols=True)
-                for done in all_tasks:
-                    bank, resp = done.result()
-                    all_tasks.set_postfix_str(f'{bank[0]}: {resp}')
-                    if resp != '新增报价成功': failed.append(f'{str(bank)}: {resp}')
-            finally:
-                all_tasks.close()
+        for i, done in enumerate(all_tasks, 1):
+            bank, resp = done.result()
+            self.cur_percent.emit(int(100 * i / all_count))
+            if resp != '新增报价成功':
+                failed.append(f'{str(bank)}: {resp}')
+            else:
+                self.new_log.emit(f'{bank[0]} - SUCCESS')
         return failed
 
     def __get_existing_set(self, notice_date: int) -> dict[str, list[str]]:
@@ -227,15 +205,11 @@ class RequestUtil(QObject):
         '''
         return f'{self.conf["Origin"]}/{suffix}'
 
-    def __print_or_emit(self, *logs: object) -> None:
+    def __send_logs(self, *logs: object) -> None:
         ''' @return None\n
-        Print `logs` to terminal if `use_signal` is `False`, otherwise
-        send `logs` outside using signal `new_log`.
+        Send `logs` outside using signal `new_log`.
         '''
-        if self.use_signal:
-            self.new_log.emit(' '.join(logs).strip())
-        else:
-            print(*logs)
+        self.new_log.emit(' '.join(logs).strip())
 
 
 if __name__ == '__main__':

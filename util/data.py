@@ -1,6 +1,5 @@
 import json
 import os
-import time
 
 
 class JsonUtil:
@@ -24,22 +23,7 @@ class JsonUtil:
             return json.load(f)
 
     @staticmethod
-    def convert(src: str, dst: str) -> None:
-        ''' @return None\n
-        Convert and re-arrange data stored in txt to json format.
-        Using `bank_map.json` to correct some special bank names.
-        '''
-        print('\nDivide text into blocks...')
-        division = []
-        for rg in range(1, 5):  # 4 rank groups
-            nums = input(f'Nums in rank group {rg} of each column (press enter to skip): ').split(' ')
-            if len(nums) == 1 and nums[0] == '': continue
-            assert len(nums) == 5, 'Invalid input'  # 1M, 3M, 6M, 9M, 1Y
-            division.append([int(x) for x in nums])
-        JsonUtil.convert_without_input(src, dst, division)
-
-    @staticmethod
-    def convert_without_input(src: str, dst: str, division: list[list[int]]) -> None:
+    def convert(src: str, dst: str, division: list[list[int]]) -> None:
         ''' @return None\n
         Convert and re-arrange data stored in txt to json format.
         Using `bank_map.json` to correct some special bank names.
@@ -137,67 +121,6 @@ class ValidateUtil:
                     return False, f'Expected type str of all values in {i}th element, not {elem[j].__class__}'
                 if j > 0 and elem[j]: count += 1
         return True, f'{len(content)} bank(s), {count} offer(s)'
-
-
-class InputUtil:
-    ''' An utility class for keyboard inputs.
-    '''
-    @staticmethod
-    def input_path(file_descr: str, default_path: str, require_exists: bool = False) -> str:
-        ''' @return str - path that finally takes effect
-        '''
-        print()
-        while True:
-            val = input(f'Path to {file_descr} file: ')
-            if not val: break
-            if not require_exists or os.path.isfile(val): break
-            print(f' * Given path [{val}] does not exist or cannot access, please try again')
-        if not val:
-            print(f' * Falls back to default path [{default_path}]')
-            return default_path
-        print(f' * Using [{val}] as path of {file_descr} file')
-        return val
-
-    @staticmethod
-    def input_yes_or_no(descr: str) -> bool:
-        ''' @return bool - decide with input
-        '''
-        print()
-        while True:
-            slt = input(f'{descr} (y/n): ').lower()
-            if slt in ['y', 'yes', '']: return True
-            if slt in ['n', 'no']: return False
-
-    @staticmethod
-    def input_offset() -> int:
-        ''' @return int - milliseconds with offset
-        '''
-        print()
-        while True:
-            raw = input('Date offset (must NOT be positive): ')
-            if not raw:
-                print(' * Falls back to default value [0 | today]')
-                return 1000 * int(time.time())
-            elif raw == '0' or raw.startswith('-') and raw[1:].isdecimal():
-                offset = int(raw)
-                sec = int(time.time()) + 86400 * offset
-                print(f' * Offset set to [{offset} | {time.ctime(sec)}]')
-                return 1000 * sec
-
-    @staticmethod
-    def input_max_workers() -> int:
-        ''' @return int - number of max active workers in thread pool
-        '''
-        print('\nWARN: This is an EXPERIMENTAL feature. Takes no responsibility for any side effect.')
-        while True:
-            raw = input('[Concurrency] Max workers of thread pool (must be positive): ')
-            if not raw:
-                print(' * Falls back to default value [1 | Single thread]')
-                return 1
-            elif raw.isdecimal():
-                max_workers = int(raw)
-                print(f' * Max workers set to [{max_workers}]')
-                return max_workers
 
 
 if __name__ == '__main__':
