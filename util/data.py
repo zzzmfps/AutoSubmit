@@ -1,6 +1,8 @@
 import json
 import os
 
+from util.const import Const
+
 
 class JsonUtil:
     ''' An utility class for json I/O operations.
@@ -38,7 +40,7 @@ class JsonUtil:
         with open(src, 'r', encoding='utf-8') as f:
             raw = [line for line in f.read().split('\n') if line]
         assert len(raw) & 1 == 0, 'Number of data rows is NOT even'
-        bank_map = JsonUtil.load('assets/json/bank_map.json')
+        bank_map = JsonUtil.load(Const.FILE_JSON_BANK_MAP)
         # rearrange, in original layout
         data1, raw_n = [[] for _ in range(5)], 0
         for rg in range(4):  # 4 rank groups

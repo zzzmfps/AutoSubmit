@@ -5,6 +5,7 @@ from uuid import uuid4
 import requests as rq
 from PySide2.QtCore import QObject, Signal
 
+from util.const import Const
 from util.data import JsonUtil
 
 
@@ -16,9 +17,9 @@ class RequestUtil(QObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self.conf = JsonUtil.load('assets/json/url.json')
-        self.user, self.comm = JsonUtil.load('assets/json/user.json')
-        self.rmap = JsonUtil.load('assets/json/bank_rank.json')
+        self.conf = JsonUtil.load(Const.FILE_JSON_URL_RULE)
+        self.user, self.comm = JsonUtil.load(Const.FILE_JSON_USER_CONF)
+        self.rmap = JsonUtil.load(Const.FILE_JSON_BANK_RANK)
         self.session_id = uuid4().__str__()
 
     def login(self) -> str:
@@ -58,7 +59,7 @@ class RequestUtil(QObject):
             return as_completed(all_tasks)
 
         # try to skip existing offers
-        if self.comm['skipExisting']:
+        if self.comm[Const.CONF_SKIP_EXISTING]:
             self.__send_logs('\nPruning offer set...')
             try:
                 exists = self.__get_existing_set(notice_date)
@@ -77,7 +78,7 @@ class RequestUtil(QObject):
                 self.__send_logs('COMPLETE')
 
         # traverse and submit
-        max_workers = self.comm['maxWorkers'] if self.comm['enableMultiThread'] else 1
+        max_workers = self.comm[Const.CONF_MAX_WORKERS] if self.comm[Const.CONF_MULTI_THREAD] else 1
         all_count = len(banks)
         self.__send_logs(f'\nStart to add {all_count} offers...')
         failed = []

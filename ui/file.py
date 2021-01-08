@@ -1,5 +1,6 @@
 from PySide2.QtCore import Signal
 from PySide2.QtWidgets import QFileDialog
+from util.const import Const
 from util.data import JsonUtil, ValidateUtil
 
 from ui.basic import BasicDialog, BasicWidget
@@ -14,7 +15,7 @@ class CreateWindow(BasicWidget):
         ask_jump = Signal(bool)
 
         def __init__(self) -> None:
-            super().__init__('assets/ui/jump_to_convert.ui')
+            super().__init__(Const.FILE_UI_JUMP)
 
         def set_handlers(self) -> None:
             self.win.btn_jump.clicked.connect(self.__handle_jump)
@@ -35,7 +36,7 @@ class CreateWindow(BasicWidget):
     require_jump = Signal(str)
 
     def __init__(self) -> None:
-        super().__init__('assets/ui/create.ui')
+        super().__init__(Const.FILE_UI_CREATE)
 
     def set_handlers(self) -> None:
         self.win.content.textChanged.connect(self.__handle_text_changed)
@@ -69,7 +70,7 @@ class ConvertWindow(BasicWidget):
     converted = Signal(str)
 
     def __init__(self, txt_path: str = '') -> None:
-        super().__init__('assets/ui/convert.ui')
+        super().__init__(Const.FILE_UI_CONVERT)
         if txt_path:
             self.txt_path = txt_path
             self.win.addr.setText(txt_path)
@@ -111,7 +112,7 @@ class QuitWindow(BasicDialog):
     force_quit = Signal()
 
     def __init__(self) -> None:
-        super().__init__('assets/ui/quit.ui')
+        super().__init__(Const.FILE_UI_QUIT)
 
     def set_handlers(self) -> None:
         self.win.btn_quit.clicked.connect(self.force_quit.emit)

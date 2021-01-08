@@ -1,3 +1,4 @@
+from util.const import Const
 from PySide2.QtCore import Signal
 from util.data import JsonUtil
 
@@ -10,8 +11,8 @@ class CommonWindow(BasicWidget):
     conf_status = Signal(bool, str, str)
 
     def __init__(self) -> None:
-        super().__init__('assets/ui/common.ui')
-        self.conf_path = 'assets/json/user.json'
+        super().__init__(Const.FILE_UI_COMMON)
+        self.conf_path = Const.FILE_JSON_USER_CONF
 
     def set_handlers(self) -> None:
         self.win.enable_multi_thread.clicked.connect(self.__handle_enable_multi_thread)
@@ -24,15 +25,20 @@ class CommonWindow(BasicWidget):
             if not isinstance(self.user, dict) or not isinstance(self.comm, dict): raise TypeError
             self.conf_status.emit(True, self.conf_path, '')
         except Exception as ex:
-            self.user = {'loginName': '', 'loginPassword': '', 'loginTerminalType': 10, 'isCarryOn': 1}
-            self.comm = {'skipExisting': False, 'enableMultiThread': False, 'maxWorkers': 1}
+            self.user = {
+                Const.CONF_USERNAME: '',
+                Const.CONF_PASSWORD: '',
+                Const.CONF_LOGIN_TERMINAL: 10,
+                Const.CONF_CARRY_ON: 1
+            }
+            self.comm = {Const.CONF_SKIP_EXISTING: False, Const.CONF_MULTI_THREAD: False, Const.CONF_MAX_WORKERS: 1}
             JsonUtil.save(self.conf_path, [self.user, self.comm])
             self.conf_status.emit(False, self.conf_path, ex.__str__())
-        if self.user['loginName']: self.win.username.setText(self.user['loginName'])
-        if self.user['loginPassword']: self.win.password.setText(self.user['loginPassword'])
-        if self.comm['skipExisting']: self.win.skip_existing.click()
-        if self.comm['enableMultiThread']: self.win.enable_multi_thread.click()
-        self.win.max_workers.setValue(self.comm['maxWorkers'])
+        if self.user[Const.CONF_USERNAME]: self.win.username.setText(self.user[Const.CONF_USERNAME])
+        if self.user[Const.CONF_PASSWORD]: self.win.password.setText(self.user[Const.CONF_PASSWORD])
+        if self.comm[Const.CONF_SKIP_EXISTING]: self.win.skip_existing.click()
+        if self.comm[Const.CONF_MULTI_THREAD]: self.win.enable_multi_thread.click()
+        self.win.max_workers.setValue(self.comm[Const.CONF_MAX_WORKERS])
 
     # handlers
     def __handle_enable_multi_thread(self, enabled: bool) -> None:
@@ -40,11 +46,11 @@ class CommonWindow(BasicWidget):
 
     def __handle_save(self) -> None:
         add_msg = []
-        self.__update_and_msg(add_msg, self.user, 'loginName', self.win.username.text())
-        self.__update_and_msg(add_msg, self.user, 'loginPassword', self.win.password.text())
-        self.__update_and_msg(add_msg, self.comm, 'skipExisting', self.win.skip_existing.isChecked())
-        self.__update_and_msg(add_msg, self.comm, 'enableMultiThread', self.win.enable_multi_thread.isChecked())
-        self.__update_and_msg(add_msg, self.comm, 'maxWorkers', self.win.max_workers.value())
+        self.__update_and_msg(add_msg, self.user, Const.CONF_USERNAME, self.win.username.text())
+        self.__update_and_msg(add_msg, self.user, Const.CONF_PASSWORD, self.win.password.text())
+        self.__update_and_msg(add_msg, self.comm, Const.CONF_SKIP_EXISTING, self.win.skip_existing.isChecked())
+        self.__update_and_msg(add_msg, self.comm, Const.CONF_MULTI_THREAD, self.win.enable_multi_thread.isChecked())
+        self.__update_and_msg(add_msg, self.comm, Const.CONF_MAX_WORKERS, self.win.max_workers.value())
         if add_msg:
             JsonUtil.save(self.conf_path, [self.user, self.comm])
             self.conf_status.emit(True, self.conf_path, '; '.join(add_msg))
@@ -53,7 +59,7 @@ class CommonWindow(BasicWidget):
     # helpers
     def __update_and_msg(self, add_msg, origin_dict, field_name, new_value):
         if origin_dict[field_name] != new_value:
-            add_msg.append(f'{field_name} changed from {origin_dict[field_name]} to {new_value}')
+            add_msg.append(f'{field_name}: <i>{origin_dict[field_name]}</i> -> <i>{new_value}</i>')
             origin_dict[field_name] = new_value
 
 
